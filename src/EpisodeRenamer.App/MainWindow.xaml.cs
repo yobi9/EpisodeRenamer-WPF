@@ -49,12 +49,16 @@ public partial class MainWindow : Window
     private List<ReportItem> _lastRunLog = new();
     private List<(int Start, int End)> _lastMissingRuns = new();
 
-    public MainWindow()
+    public MainWindow() : this(null, null)
+    {
+    }
+
+    internal MainWindow(string? settingsPath, string? undoPath)
     {
         InitializeComponent();
         previewGrid.ItemsSource = _previewRows;
-        _settingsPath = Path.Combine(ResolveAppRoot(), "EpisodeRenamer.settings.json");
-        _undoPath = Path.Combine(ResolveAppRoot(), "EpisodeRenamer.undo.json");
+        _settingsPath = settingsPath ?? Path.Combine(ResolveAppRoot(), "EpisodeRenamer.settings.json");
+        _undoPath = undoPath ?? Path.Combine(ResolveAppRoot(), "EpisodeRenamer.undo.json");
         _settings = new SettingsManager(_settingsPath);
         _undo = new UndoLogManager(_undoPath);
         _undo.Load();
@@ -62,17 +66,19 @@ public partial class MainWindow : Window
         _liveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _liveTimer.Tick += LivePreviewTick;
 
+        AppSettings? saved = _settings.Load();
         _suppressLive = true;
         try
         {
             styleDropdown.ItemsSource = StyleItems;
             styleDropdown.SelectedIndex = 0;
-            ApplySavedSettings(_settings.Load());
+            ApplySavedSettings(saved);
         }
         finally
         {
             _suppressLive = false;
         }
+        WindowBoundsHelper.Apply(this, saved);
     }
 
     internal static bool IsHeadlessMode =>
@@ -293,16 +299,7 @@ public partial class MainWindow : Window
                 AppendLine("\uD83D\uDED1 \u0644\u0627 \u062A\u0648\u062C\u062F \u0639\u0645\u0644\u064A\u0627\u062A \u0644\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646\u0647\u0627!");
                 return;
             }
-            var results = _undo.UndoAll();
-            foreach (var (entry, success) in results)
-            {
-                if (success)
-                    AppendLine("\u21A9 \u062A\u0645 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646: " + entry.New + " -> " + entry.Old);
-                else
-                    AppendLine("\u274C \u0641\u0634\u0644 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646: " + entry.New);
-            }
-            AppendLine("\u2705 \u0627\u0643\u062A\u0645\u0644 \u0627\u0644\u062A\u0631\u0627\u062C\u0639");
-            _settings.Save(CurrentSettings());
+            UndoAllAndNotify();
         }
         finally { SetBusy(false); }
     }
@@ -533,9 +530,42 @@ public partial class MainWindow : Window
         finally { SetBusy(false); }
     }
 
+    protected override void OnContentRendered(EventArgs e)
+    {
+        base.OnContentRendered(e);
+        PromptPendingUndo();
+    }
+
+    internal void PromptPendingUndo()
+    {
+        int count = _undo.Log.Count;
+        if (count == 0) return;
+        AppendLine("\u26A0\uFE0F \u062A\u0648\u062C\u062F " + count + " \u0639\u0645\u0644\u064A\u0629 \u0625\u0639\u0627\u062F\u0629 \u062A\u0633\u0645\u064A\u0629 \u0635\u0627\u0628\u0642\u0629 \u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646\u0647\u0627.");
+        if (IsHeadlessMode || DialogService.Confirm(this,
+            "\u0648\u062C\u062F\u0646\u0627 \u0639\u0645\u0644\u064A\u0627\u062A \u0625\u0639\u0627\u062F\u0629 \u062A\u0633\u0645\u064A\u0629 \u0645\u0646 \u062C\u0644\u0633\u0629 \u0633\u0627\u0628\u0642\u0629.\n\u0647\u0644 \u062A\u0631\u064A\u062F \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646\u0647\u0627 \u0627\u0644\u0622\u0646\u061F",
+            "\u0627\u0633\u062A\u0631\u062C\u0627\u0639 \u0627\u0644\u062A\u0631\u0627\u062C\u0639"))
+            UndoAllAndNotify();
+    }
+
+    private void UndoAllAndNotify()
+    {
+        var results = _undo.UndoAll();
+        foreach (var (entry, success) in results)
+        {
+            if (success)
+                AppendLine("\u21A9 \u062A\u0645 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646: " + entry.New + " -> " + entry.Old);
+            else
+                AppendLine("\u274C \u0641\u0634\u0644 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646: " + entry.New);
+        }
+        AppendLine("\u2705 \u0627\u0643\u062A\u0645\u0644 \u0627\u0644\u062A\u0631\u0627\u062C\u0639");
+        _settings.Save(CurrentSettings());
+    }
+
     private void Window_Closed(object? sender, EventArgs e)
     {
         if (IsHeadlessMode) return;
-        _settings.Save(CurrentSettings());
+        AppSettings settings = CurrentSettings();
+        WindowBoundsHelper.Capture(this, settings);
+        _settings.Save(settings);
     }
 }

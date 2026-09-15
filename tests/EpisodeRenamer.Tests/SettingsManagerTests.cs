@@ -47,6 +47,31 @@ public class SettingsManagerTests
     }
 
     [Fact]
+    public void RoundTripsWindowGeometry()
+    {
+        string file = Path.Combine(_dir, "geometry.json");
+        var manager = new SettingsManager(file);
+        var settings = new AppSettings
+        {
+            WindowLeft = 42,
+            WindowTop = 31,
+            WindowWidth = 900,
+            WindowHeight = 640,
+            WindowMaximized = true
+        };
+
+        manager.Save(settings);
+        AppSettings? loaded = manager.Load();
+
+        Assert.NotNull(loaded);
+        Assert.Equal(42, loaded!.WindowLeft);
+        Assert.Equal(31, loaded.WindowTop);
+        Assert.Equal(900, loaded.WindowWidth);
+        Assert.Equal(640, loaded.WindowHeight);
+        Assert.True(loaded.WindowMaximized);
+    }
+
+    [Fact]
     public void Load_CorruptJson_ReturnsNull()
     {
         string file = Path.Combine(_dir, "bad.json");
