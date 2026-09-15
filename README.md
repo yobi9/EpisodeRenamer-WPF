@@ -46,7 +46,7 @@ A professional tool for automatically renaming episode files, designed specifica
 
 ```bash
 # استنساخ المستودع
-git clone https://github.com/yobi9/EpisodeRenamer.git
+git clone https://github.com/yobi9/EpisodeRenamer-WPF.git
 cd EpisodeRenamer/EpisodeRenamer-WPF
 
 # بناء المشروع
