@@ -44,6 +44,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _cts;
     private bool _suppressLive;
     private bool _isRunning;
+    private bool _isDark;
     private string? _lastRunMode;
     private RunStats? _lastRunStats;
     private List<ReportItem> _lastRunLog = new();
@@ -79,6 +80,7 @@ public partial class MainWindow : Window
             _suppressLive = false;
         }
         WindowBoundsHelper.Apply(this, saved);
+        ApplyTheme(ThemeManager.IsDark(saved));
     }
 
     internal static bool IsHeadlessMode =>
@@ -123,8 +125,31 @@ public partial class MainWindow : Window
         CleanTags = cleanTagsCheck.IsChecked ?? false,
         CustomPattern = patternBox.Text,
         IgnorePatterns = ignoreBox.Text,
-        RenameSubtitles = subtitleCheck.IsChecked ?? false
+        RenameSubtitles = subtitleCheck.IsChecked ?? false,
+        DarkTheme = _isDark
     };
+
+    internal void ApplyTheme(bool dark)
+    {
+        _isDark = dark;
+        ThemeManager.Apply(this, dark);
+        themeBtn.Content = dark ? ThemeManager.DarkGlyph : ThemeManager.LightGlyph;
+    }
+
+    private void ThemeBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (IsHeadlessMode)
+        {
+            AppendLine(HeadlessMarker + " toggle theme (stubbed)");
+            return;
+        }
+        bool dark = !_isDark;
+        ApplyTheme(dark);
+        _settings.Save(CurrentSettings());
+        AppendLine(dark
+            ? "\uD83C\uDF19 \u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0644\u064A\u0644\u064A"
+            : "\u2600\uFE0F \u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0646\u0647\u0627\u0631\u064A");
+    }
 
     private void AppendLine(string text)
     {
@@ -278,6 +303,7 @@ public partial class MainWindow : Window
             _suppressLive = true;
             try { ApplySavedSettings(imported); }
             finally { _suppressLive = false; }
+            ApplyTheme(ThemeManager.IsDark(imported));
             _settings.Save(CurrentSettings());
             AppendLine("\u2705 \u062a\u0645 \u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a: " + openPath);
         }

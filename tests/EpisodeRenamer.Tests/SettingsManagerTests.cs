@@ -23,7 +23,8 @@ public class SettingsManagerTests
             CleanTags = true,
             CustomPattern = "{show} S{season}E{ep3}",
             IgnorePatterns = "sample,trailer",
-            RenameSubtitles = true
+            RenameSubtitles = true,
+            DarkTheme = true
         });
 
         AppSettings? loaded = manager.Load();
@@ -37,6 +38,7 @@ public class SettingsManagerTests
         Assert.Equal("{show} S{season}E{ep3}", loaded.CustomPattern);
         Assert.Equal("sample,trailer", loaded.IgnorePatterns);
         Assert.True(loaded.RenameSubtitles);
+        Assert.True(loaded.DarkTheme);
     }
 
     [Fact]

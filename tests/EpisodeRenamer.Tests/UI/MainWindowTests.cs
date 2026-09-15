@@ -272,7 +272,7 @@ public class MainWindowTests : IDisposable
     }
 
     [Fact]
-    public void HeadlessMode_ImportSettingsButton_AppendsStubMessage()
+    public void HeadlessMode_ThemeButton_AppendsStubMessage()
     {
         string saved = Environment.GetEnvironmentVariable("EPISODE_RENAMER_HEADLESS") ?? "";
         try
@@ -284,12 +284,12 @@ public class MainWindowTests : IDisposable
                 var w = new MainWindow();
                 try
                 {
-                    w.importSettingsBtn.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    w.themeBtn.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                     captured = w.OutputText;
                 }
                 finally { w.Close(); }
             });
-            Assert.Contains("import settings (stubbed)", captured!);
+            Assert.Contains("toggle theme (stubbed)", captured!);
         }
         finally { Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", saved); }
     }

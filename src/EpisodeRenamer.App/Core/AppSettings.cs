@@ -15,4 +15,5 @@ public sealed class AppSettings
     public double? WindowWidth { get; set; }
     public double? WindowHeight { get; set; }
     public bool? WindowMaximized { get; set; }
+    public bool? DarkTheme { get; set; }
 }

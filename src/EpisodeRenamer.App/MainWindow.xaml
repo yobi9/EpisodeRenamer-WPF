@@ -9,7 +9,8 @@
         MinHeight="700" MinWidth="800"
         WindowStartupLocation="CenterScreen"
         FlowDirection="RightToLeft"
-        Background="#F5F7FA"
+        Background="{DynamicResource WindowBackground}"
+        TextElement.Foreground="{DynamicResource TextBrush}"
         AllowDrop="True"
         DragEnter="Form_DragEnter"
         DragOver="Form_DragOver"
@@ -17,6 +18,22 @@
         PreviewKeyDown="Window_PreviewKeyDown"
         Closed="Window_Closed">
     <Window.Resources>
+        <SolidColorBrush x:Key="WindowBackground" Color="#F5F7FA"/>
+        <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#1A1A1A"/>
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#7F8C8D"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#D0D0D0"/>
+        <SolidColorBrush x:Key="GridBackground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="GridHeaderBackground" Color="#ECF0F1"/>
+        <SolidColorBrush x:Key="GridHeaderForeground" Color="#2C3E50"/>
+        <SolidColorBrush x:Key="GridRowForeground" Color="#2C3E50"/>
+        <SolidColorBrush x:Key="StatusModifiedBrush" Color="#E8F8F5"/>
+        <SolidColorBrush x:Key="StatusCorrectBrush" Color="#F4F4F4"/>
+        <SolidColorBrush x:Key="StatusIgnoredBrush" Color="#FDECEA"/>
+        <SolidColorBrush x:Key="ConsoleBackground" Color="#000000"/>
+        <SolidColorBrush x:Key="ConsoleForeground" Color="#32CD32"/>
+        <SolidColorBrush x:Key="ThemeButtonBackground" Color="#FFFFFF"/>
+
         <Style x:Key="ModernButton" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -54,19 +71,22 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         </Style>
 
         <Style x:Key="ConsoleOutput" TargetType="TextBox">
             <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="Background" Value="#FF000000"/>
-            <Setter Property="Foreground" Value="#FF32CD32"/>
+            <Setter Property="Background" Value="{DynamicResource ConsoleBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ConsoleForeground}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="TextWrapping" Value="NoWrap"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="AcceptsReturn" Value="True"/>
             <Setter Property="IsUndoEnabled" Value="False"/>
         </Style>
@@ -74,15 +94,16 @@
         <Style x:Key="PreviewGridRow" TargetType="DataGridRow">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{DynamicResource GridRowForeground}"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Status}" Value="سيعدّل">
-                    <Setter Property="Background" Value="#E8F8F5"/>
+                    <Setter Property="Background" Value="{DynamicResource StatusModifiedBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="صحيح">
-                    <Setter Property="Background" Value="#F4F4F4"/>
+                    <Setter Property="Background" Value="{DynamicResource StatusCorrectBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="متجاهل">
-                    <Setter Property="Background" Value="#FDECEA"/>
+                    <Setter Property="Background" Value="{DynamicResource StatusIgnoredBrush}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -132,6 +153,7 @@
                     </Grid.ColumnDefinitions>
                     <ComboBox x:Name="styleDropdown" Grid.Column="0" Width="280" Height="30"
                               VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13" BorderThickness="1"
+                              Foreground="{DynamicResource TextBrush}"
                               SelectionChanged="StyleDropdown_SelectionChanged"/>
                     <Label x:Name="styleLabel" Grid.Column="1" Content="نمط التسمية:" Margin="6,0"
                            VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
@@ -164,7 +186,7 @@
                              VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13"
                              Style="{StaticResource FlatTextBox}"/>
                     <TextBlock Text="الرموز: {show} {season} {ep} {ep2} {ep3}" Margin="10,0,0,0"
-                               VerticalAlignment="Center" Foreground="#7F8C8D" FontFamily="Segoe UI" FontSize="12"/>
+                               VerticalAlignment="Center" Foreground="{DynamicResource MutedTextBrush}" FontFamily="Segoe UI" FontSize="12"/>
                     <Button x:Name="exportSettingsBtn" x:FieldModifier="internal" Content="تصدير الإعدادات"
                             Background="#16A085" Width="140" Height="32" Margin="140,0,0,0"
                             Style="{StaticResource ModernButton}" Click="ExportSettingsBtn_Click"/>
@@ -187,6 +209,9 @@
                     Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="UndoBtn_Click"/>
             <Button x:Name="exportBtn" x:FieldModifier="internal" Content="💾 حفظ التقرير" Background="#34495E"
                     Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="ExportBtn_Click"/>
+            <Button x:Name="themeBtn" x:FieldModifier="internal" Content="☀️" Background="{DynamicResource ThemeButtonBackground}"
+                    Foreground="{DynamicResource TextBrush}" Width="46" MinWidth="46" Margin="10,0,0,0"
+                    ToolTip="الوضع الليلي / النهاري" Style="{StaticResource ModernButton}" Click="ThemeBtn_Click"/>
         </StackPanel>
 
         <ProgressBar x:Name="progress" Grid.Row="3" Height="14" Margin="0,4,0,8" Minimum="0" Maximum="100"/>
@@ -198,11 +223,25 @@
                   IsReadOnly="False"
                   HeadersVisibility="Column"
                   GridLinesVisibility="Horizontal"
-                  HorizontalGridLinesBrush="#D0D0D0"
+                  Background="{DynamicResource GridBackground}"
+                  Foreground="{DynamicResource GridRowForeground}"
+                  HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                   RowStyle="{StaticResource PreviewGridRow}"
                   SelectionMode="Single"
                   Margin="0,0,0,8"
                   MouseDoubleClick="PreviewGrid_MouseDoubleClick">
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="{DynamicResource GridHeaderBackground}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource GridHeaderForeground}"/>
+                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="Padding" Value="6,4"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn x:Name="colStatus" Header="الحالة" Binding="{Binding Status}" Width="90" IsReadOnly="True"/>
                 <DataGridTextColumn Header="الاسم الحالي" Binding="{Binding OldName}" Width="4*" IsReadOnly="True"/>
