@@ -1,0 +1,150 @@
+﻿<Window x:Class="EpisodeRenamer.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="مغير أسماء الحلقات الاحترافي ULTRA"
+        Height="760" Width="1000"
+        MinHeight="600" MinWidth="800"
+        WindowStartupLocation="CenterScreen"
+        FlowDirection="RightToLeft"
+        Background="#F5F7FA"
+        AllowDrop="True"
+        DragEnter="Form_DragEnter"
+        DragOver="Form_DragOver"
+        Drop="Form_DragDrop"
+        Closed="Window_Closed">
+    <Window.Resources>
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter Margin="10,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FlatTextBox" TargetType="TextBox">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <Style x:Key="ConsoleOutput" TargetType="TextBox">
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Background" Value="#FF000000"/>
+            <Setter Property="Foreground" Value="#FF32CD32"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="TextWrapping" Value="NoWrap"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="IsUndoEnabled" Value="False"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Row="0" Header=" مسار المجلد " Padding="8" Margin="0,0,0,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" LastChildFill="True">
+                    <Button x:Name="browseBtn" x:FieldModifier="internal" DockPanel.Dock="Right" Content="استعراض"
+                            Background="#3498DB" Width="90" Height="32" Margin="8,0,0,0"
+                            Style="{StaticResource ModernButton}" Click="BrowseBtn_Click"/>
+                    <TextBox x:Name="pathBox" Height="30"
+                             Style="{StaticResource FlatTextBox}"/>
+                </DockPanel>
+                <CheckBox x:Name="recurseCheck" Grid.Row="1" Content="مجلدات فرعية"
+                          Margin="0,8,0,0" FontFamily="Segoe UI" FontSize="13" VerticalAlignment="Center"/>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Row="1" Header=" خيارات التسمية " Padding="8" Margin="0,0,0,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="styleDropdown" Grid.Column="0" Width="230" Height="30"
+                              VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13" BorderThickness="1"
+                              SelectionChanged="StyleDropdown_SelectionChanged"/>
+                    <Label x:Name="styleLabel" Grid.Column="1" Content="نمط التسمية:" Margin="6,0"
+                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                    <TextBox x:Name="showBox" Grid.Column="2" MinWidth="160" Height="30"
+                             Margin="4,0" Style="{StaticResource FlatTextBox}"
+                             TextChanged="ShowBox_TextChanged"/>
+                    <Label x:Name="showLabel" Grid.Column="3" Content="اسم المسلسل:" Margin="6,0"
+                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                </Grid>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                    <CheckBox x:Name="cleanTagsCheck" Content="تنظيف علامات المصدر"
+                              VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                    <Button x:Name="suggestBtn" x:FieldModifier="internal" Content="اقتراح الاسم" Background="#9B59B6"
+                            Width="120" Height="32" Margin="300,0,0,0"
+                            Style="{StaticResource ModernButton}" Click="SuggestBtn_Click"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,8">
+            <Button x:Name="previewBtn" x:FieldModifier="internal" Content="👁 معاينة" Background="#2ECC71"
+                    Style="{StaticResource ModernButton}" Click="PreviewBtn_Click"/>
+            <Button x:Name="renameBtn" x:FieldModifier="internal" Content="✍ إعادة تسمية" Background="#E74C3C"
+                    Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="RenameBtn_Click"/>
+            <Button x:Name="undoBtn" x:FieldModifier="internal" Content="↩ تراجع" Background="#95A5A6"
+                    Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="UndoBtn_Click"/>
+            <Button x:Name="exportBtn" x:FieldModifier="internal" Content="💾 حفظ التقرير" Background="#34495E"
+                    Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="ExportBtn_Click"/>
+        </StackPanel>
+
+        <ProgressBar x:Name="progress" Grid.Row="3" Height="14" Margin="0,4,0,8" Minimum="0" Maximum="100"/>
+
+        <TextBox x:Name="output" Grid.Row="4" FlowDirection="LeftToRight" Style="{StaticResource ConsoleOutput}"/>
+    </Grid>
+</Window>

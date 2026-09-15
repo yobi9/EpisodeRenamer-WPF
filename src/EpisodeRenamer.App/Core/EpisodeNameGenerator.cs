@@ -1,0 +1,101 @@
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace EpisodeRenamer.Core;
+
+public static class EpisodeNameGenerator
+{
+    private static readonly RegexOptions IC = RegexOptions.IgnoreCase;
+
+    public static int? GetSeasonNumber(FileInfo file, string? rootPath)
+    {
+        string nameLat = TextNormalizer.Normalize(file.Name);
+        var m = Regex.Match(nameLat, @"[sS][\s._-]*([0-9]+)[\s._-]?[eE][\s._-]*([0-9]+)", IC);
+        if (m.Success) return int.Parse(m.Groups[1].Value);
+
+        string root = (rootPath ?? "").TrimEnd('\\');
+        DirectoryInfo? dir = file.Directory;
+        bool first = true;
+        while (dir is not null)
+        {
+            int? s = SeasonResolver.Resolve(dir.Name, allowGeneric: first);
+            if (s is not null) return s;
+            first = false;
+            if (string.Equals(dir.FullName.TrimEnd('\\'), root, StringComparison.OrdinalIgnoreCase))
+                break;
+            dir = dir.Parent;
+        }
+        return null;
+    }
+
+    public static (int? Episode, string? NewName) GenerateNewName(
+        FileInfo file, string? rootPath, string style, string? showName, bool cleanTags)
+    {
+        string nameLat = TextNormalizer.Normalize(file.Name);
+        string nameBase = TextNormalizer.Normalize(Path.GetFileNameWithoutExtension(file.Name));
+
+        int season = GetSeasonNumber(file, rootPath) ?? 1;
+
+        int? ep = null;
+        var m = Regex.Match(nameLat, @"[sS](\d+)[\.\-\s]?[eE](\d+)", IC);
+        if (m.Success)
+        {
+            ep = int.Parse(m.Groups[2].Value);
+        }
+        else if ((m = Regex.Match(nameLat, @"(\d+)x(\d+)", IC)).Success)
+        {
+            ep = int.Parse(m.Groups[2].Value);
+        }
+        else if ((m = Regex.Match(nameLat, @"(?:Episode|EP)[\s._-]*(\d+)", IC)).Success)
+        {
+            ep = int.Parse(m.Groups[1].Value);
+        }
+        else if ((m = Regex.Match(nameLat, @"(?:\u0627\u0644\u062d\u0644\u0642\u0629|\u062d\u0644\u0642\u0629)[\s._-]*(\d+)")).Success)
+        {
+            ep = int.Parse(m.Groups[1].Value);
+        }
+        else if ((m = Regex.Match(nameBase, @"^(\d{1,3})$")).Success)
+        {
+            ep = int.Parse(m.Groups[1].Value);
+        }
+        else if ((m = Regex.Match(nameBase, @"^(\d{1,3})(?!\d)")).Success)
+        {
+            ep = int.Parse(m.Groups[1].Value);
+        }
+        else if ((m = Regex.Match(nameLat, @"(?:[_\s.\-])(\d{1,3})(?!\d)")).Success)
+        {
+            ep = int.Parse(m.Groups[1].Value);
+        }
+
+        if (ep is null) return (null, null);
+
+        string pattern = NameFormatter.Format(season, ep.Value, style);
+        string show = showName?.Trim() ?? string.Empty;
+
+        if (show.Length > 0)
+        {
+            foreach (char c in Path.GetInvalidFileNameChars())
+                show = show.Replace(c.ToString(), string.Empty);
+
+            show = show.TrimEnd(' ', '.');
+            show = Regex.Replace(show, @"^[-\.\s]+", string.Empty);
+
+            if (cleanTags)
+            {
+                foreach (string p in TextNormalizer.SourceTagPatterns)
+                    show = Regex.Replace(show, p, string.Empty, IC);
+                show = Regex.Replace(show, @"[\s_]+", " ");
+                show = Regex.Replace(show, @"\s+", " ");
+                show = Regex.Replace(show, @"\s*-\s*", "-");
+                show = Regex.Replace(show, @"^[\s-]+|[\s-]+$", string.Empty);
+            }
+
+            if (show.Length > 0)
+                return (ep, $"{show}-{pattern}{file.Extension}");
+            return (ep, $"{pattern}{file.Extension}");
+        }
+
+        return (ep, $"{pattern}{file.Extension}");
+    }
+}
