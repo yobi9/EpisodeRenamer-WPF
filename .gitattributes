@@ -1,0 +1,28 @@
+* text=auto
+
+*.cs text eol=crlf
+*.xaml text eol=crlf
+*.csproj text eol=crlf
+*.sln text eol=crlf
+*.ps1 text eol=crlf
+*.json text eol=crlf
+*.xml text eol=crlf
+*.config text eol=crlf
+*.md text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+*.dll binary
+*.exe binary
+*.pdb binary
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.rar binary
+*.7z binary
+*.wav binary
+*.ttf binary
