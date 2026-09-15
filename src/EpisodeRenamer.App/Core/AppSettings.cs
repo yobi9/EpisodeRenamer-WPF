@@ -7,4 +7,7 @@ public sealed class AppSettings
     public int Style { get; set; } = -1;
     public bool? Recurse { get; set; }
     public bool? CleanTags { get; set; }
+    public string? CustomPattern { get; set; }
+    public string? IgnorePatterns { get; set; }
+    public bool? RenameSubtitles { get; set; }
 }

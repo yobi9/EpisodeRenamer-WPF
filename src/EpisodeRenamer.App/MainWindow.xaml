@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="مغير أسماء الحلقات الاحترافي ULTRA"
-        Height="760" Width="1000"
-        MinHeight="600" MinWidth="800"
+        Height="900" Width="1000"
+        MinHeight="700" MinWidth="800"
         WindowStartupLocation="CenterScreen"
         FlowDirection="RightToLeft"
         Background="#F5F7FA"
@@ -14,6 +14,7 @@
         DragEnter="Form_DragEnter"
         DragOver="Form_DragOver"
         Drop="Form_DragDrop"
+        PreviewKeyDown="Window_PreviewKeyDown"
         Closed="Window_Closed">
     <Window.Resources>
         <Style x:Key="ModernButton" TargetType="Button">
@@ -24,7 +25,7 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Height" Value="40"/>
-            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="MinWidth" Value="110"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -69,6 +70,22 @@
             <Setter Property="AcceptsReturn" Value="True"/>
             <Setter Property="IsUndoEnabled" Value="False"/>
         </Style>
+
+        <Style x:Key="PreviewGridRow" TargetType="DataGridRow">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="سيعدّل">
+                    <Setter Property="Background" Value="#E8F8F5"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="صحيح">
+                    <Setter Property="Background" Value="#F4F4F4"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="متجاهل">
+                    <Setter Property="Background" Value="#FDECEA"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="10">
@@ -78,6 +95,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <GroupBox Grid.Row="0" Header=" مسار المجلد " Padding="8" Margin="0,0,0,8">
@@ -103,6 +121,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
@@ -111,7 +130,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <ComboBox x:Name="styleDropdown" Grid.Column="0" Width="230" Height="30"
+                    <ComboBox x:Name="styleDropdown" Grid.Column="0" Width="280" Height="30"
                               VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13" BorderThickness="1"
                               SelectionChanged="StyleDropdown_SelectionChanged"/>
                     <Label x:Name="styleLabel" Grid.Column="1" Content="نمط التسمية:" Margin="6,0"
@@ -125,9 +144,33 @@
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
                     <CheckBox x:Name="cleanTagsCheck" Content="تنظيف علامات المصدر"
                               VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                    <CheckBox x:Name="subtitleCheck" Content="إعادة تسمية الترجمة"
+                              Margin="20,0,0,0" VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                    <Label x:Name="ignoreLabel" Content="استبعاد:" Margin="20,0,0,0"
+                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                    <TextBox x:Name="ignoreBox" Width="180" Height="30"
+                             ToolTip="أسماء الملفات التي تحتوي على هذه الكلمات سيتم تجاهلها (افصل بفاصلة)"
+                             VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13"
+                             Style="{StaticResource FlatTextBox}"/>
                     <Button x:Name="suggestBtn" x:FieldModifier="internal" Content="اقتراح الاسم" Background="#9B59B6"
-                            Width="120" Height="32" Margin="300,0,0,0"
+                            Width="130" Height="32" Margin="140,0,0,0"
                             Style="{StaticResource ModernButton}" Click="SuggestBtn_Click"/>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                    <Label x:Name="patternLabel" Content="قالب مخصص:" VerticalAlignment="Center"
+                           FontFamily="Segoe UI" FontSize="13"/>
+                    <TextBox x:Name="patternBox" Width="320" Height="30"
+                             ToolTip="الرموز: {show} {season} {ep} {ep2} {ep3} — مثال: {show} - S{season}E{ep3}"
+                             VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13"
+                             Style="{StaticResource FlatTextBox}"/>
+                    <TextBlock Text="الرموز: {show} {season} {ep} {ep2} {ep3}" Margin="10,0,0,0"
+                               VerticalAlignment="Center" Foreground="#7F8C8D" FontFamily="Segoe UI" FontSize="12"/>
+                    <Button x:Name="exportSettingsBtn" x:FieldModifier="internal" Content="تصدير الإعدادات"
+                            Background="#16A085" Width="140" Height="32" Margin="140,0,0,0"
+                            Style="{StaticResource ModernButton}" Click="ExportSettingsBtn_Click"/>
+                    <Button x:Name="importSettingsBtn" x:FieldModifier="internal" Content="استيراد الإعدادات"
+                            Background="#27AE60" Width="140" Height="32" Margin="10,0,0,0"
+                            Style="{StaticResource ModernButton}" Click="ImportSettingsBtn_Click"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -137,6 +180,9 @@
                     Style="{StaticResource ModernButton}" Click="PreviewBtn_Click"/>
             <Button x:Name="renameBtn" x:FieldModifier="internal" Content="✍ إعادة تسمية" Background="#E74C3C"
                     Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="RenameBtn_Click"/>
+            <Button x:Name="stopBtn" x:FieldModifier="internal" Content="⏹ إيقاف" Background="#E67E22"
+                    Margin="10,0,0,0" IsEnabled="False"
+                    Style="{StaticResource ModernButton}" Click="StopBtn_Click"/>
             <Button x:Name="undoBtn" x:FieldModifier="internal" Content="↩ تراجع" Background="#95A5A6"
                     Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="UndoBtn_Click"/>
             <Button x:Name="exportBtn" x:FieldModifier="internal" Content="💾 حفظ التقرير" Background="#34495E"
@@ -145,6 +191,25 @@
 
         <ProgressBar x:Name="progress" Grid.Row="3" Height="14" Margin="0,4,0,8" Minimum="0" Maximum="100"/>
 
-        <TextBox x:Name="output" Grid.Row="4" FlowDirection="LeftToRight" Style="{StaticResource ConsoleOutput}"/>
+        <DataGrid x:Name="previewGrid" Grid.Row="4"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="False"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="#D0D0D0"
+                  RowStyle="{StaticResource PreviewGridRow}"
+                  SelectionMode="Single"
+                  Margin="0,0,0,8"
+                  MouseDoubleClick="PreviewGrid_MouseDoubleClick">
+            <DataGrid.Columns>
+                <DataGridTextColumn x:Name="colStatus" Header="الحالة" Binding="{Binding Status}" Width="90" IsReadOnly="True"/>
+                <DataGridTextColumn Header="الاسم الحالي" Binding="{Binding OldName}" Width="4*" IsReadOnly="True"/>
+                <DataGridTextColumn Header="الاسم الجديد (انقر نقراً مزدوجاً للتعديل)" Binding="{Binding NewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="4*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBox x:Name="output" Grid.Row="5" FlowDirection="LeftToRight" Height="200" Style="{StaticResource ConsoleOutput}"/>
     </Grid>
 </Window>

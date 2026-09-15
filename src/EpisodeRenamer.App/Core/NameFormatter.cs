@@ -34,4 +34,18 @@ public static class NameFormatter
         }
         return $"S{s}E{e3}";
     }
+
+    public static string FormatCustomTemplate(int season, int episode, string? showName, string? template)
+    {
+        if (string.IsNullOrWhiteSpace(template))
+            return Format(season, episode, null);
+
+        string result = template;
+        result = result.Replace("{show}", showName ?? string.Empty);
+        result = result.Replace("{season}", season.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        result = result.Replace("{ep}", episode.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        result = result.Replace("{ep2}", episode.ToString().PadLeft(2, '0'));
+        result = result.Replace("{ep3}", episode.ToString().PadLeft(3, '0'));
+        return result;
+    }
 }

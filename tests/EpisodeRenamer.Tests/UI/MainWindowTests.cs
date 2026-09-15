@@ -23,9 +23,16 @@ public class MainWindowTests : IDisposable
     }
 
     [Fact]
-    public void StyleItems_HasEightEntries()
+    public void StyleItems_HasNineEntries()
     {
-        Assert.Equal(8, MainWindow.StyleItems.Length);
+        Assert.Equal(9, MainWindow.StyleItems.Length);
+    }
+
+    [Fact]
+    public void StyleItems_LastEntry_IsCustomStyle()
+    {
+        Assert.Equal(MainWindow.CustomStyleIndex, MainWindow.StyleItems.Length - 1);
+        Assert.Contains("Custom", MainWindow.StyleItems[MainWindow.CustomStyleIndex]);
     }
 
     [Fact]
@@ -46,7 +53,7 @@ public class MainWindowTests : IDisposable
                 try
                 {
                     Assert.NotNull(w);
-                    Assert.Equal(8, MainWindow.StyleItems.Length);
+                    Assert.Equal(9, MainWindow.StyleItems.Length);
                 }
                 finally { w.Close(); }
             });
@@ -214,6 +221,75 @@ public class MainWindowTests : IDisposable
                 finally { w.Close(); }
             });
             Assert.Contains("suggest name (stubbed)", captured!);
+        }
+        finally { Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", saved); }
+    }
+
+    [Fact]
+    public void HeadlessMode_StopButton_AppendsStubMessage()
+    {
+        string saved = Environment.GetEnvironmentVariable("EPISODE_RENAMER_HEADLESS") ?? "";
+        try
+        {
+            Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", "1");
+            string? captured = null;
+            RunOnSta(() =>
+            {
+                var w = new MainWindow();
+                try
+                {
+                    w.stopBtn.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    captured = w.OutputText;
+                }
+                finally { w.Close(); }
+            });
+            Assert.Contains("stop (stubbed)", captured!);
+        }
+        finally { Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", saved); }
+    }
+
+    [Fact]
+    public void HeadlessMode_ExportSettingsButton_AppendsStubMessage()
+    {
+        string saved = Environment.GetEnvironmentVariable("EPISODE_RENAMER_HEADLESS") ?? "";
+        try
+        {
+            Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", "1");
+            string? captured = null;
+            RunOnSta(() =>
+            {
+                var w = new MainWindow();
+                try
+                {
+                    w.exportSettingsBtn.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    captured = w.OutputText;
+                }
+                finally { w.Close(); }
+            });
+            Assert.Contains("export settings (stubbed)", captured!);
+        }
+        finally { Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", saved); }
+    }
+
+    [Fact]
+    public void HeadlessMode_ImportSettingsButton_AppendsStubMessage()
+    {
+        string saved = Environment.GetEnvironmentVariable("EPISODE_RENAMER_HEADLESS") ?? "";
+        try
+        {
+            Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", "1");
+            string? captured = null;
+            RunOnSta(() =>
+            {
+                var w = new MainWindow();
+                try
+                {
+                    w.importSettingsBtn.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    captured = w.OutputText;
+                }
+                finally { w.Close(); }
+            });
+            Assert.Contains("import settings (stubbed)", captured!);
         }
         finally { Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", saved); }
     }

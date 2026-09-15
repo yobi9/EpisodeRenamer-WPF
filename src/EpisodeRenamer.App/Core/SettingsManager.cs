@@ -37,4 +37,29 @@ public sealed class SettingsManager
             return null;
         }
     }
+
+    public void SaveTo(string path, AppSettings settings)
+    {
+        try
+        {
+            string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(path, json, new UTF8Encoding(true));
+        }
+        catch
+        {
+        }
+    }
+
+    public AppSettings? LoadFrom(string path)
+    {
+        if (!File.Exists(path)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path));
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

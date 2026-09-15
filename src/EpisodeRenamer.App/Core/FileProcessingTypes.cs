@@ -12,4 +12,5 @@ public sealed class RunResult
     public List<(int Start, int End)> MissingRuns { get; } = new();
     public string? MissingFile { get; set; }
     public List<string> OutputLines { get; } = new();
+    public bool Cancelled { get; set; }
 }

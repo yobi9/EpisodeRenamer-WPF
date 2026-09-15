@@ -7,6 +7,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <LangVersion>12.0</LangVersion>
+    <ApplicationIcon>..\..\assets\app.ico</ApplicationIcon>
+    <Version>1.1.0</Version>
+    <FileVersion>1.1.0.0</FileVersion>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <Product>EpisodeRenamer ULTRA</Product>
+    <AssemblyTitle>EpisodeRenamer</AssemblyTitle>
+    <Company>yobi9</Company>
+    <Authors>yobi9</Authors>
+    <Description>مغير أسماء الحلقات الاحترافي ULTRA — Episode renamer with Arabic RTL interface</Description>
+    <Copyright>Copyright © 2026 yobi9</Copyright>
   </PropertyGroup>
 
 </Project>

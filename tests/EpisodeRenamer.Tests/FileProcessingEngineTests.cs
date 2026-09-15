@@ -179,4 +179,156 @@ public class FileProcessingEngineTests : IDisposable
         Assert.False(File.Exists(missingFile));
         Assert.Contains(r.OutputLines, l => l.Contains("\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0644\u0642\u0627\u062a \u0645\u0641\u0642\u0648\u062f\u0629"));
     }
+
+    private RunResult RunFull(
+        string path, bool preview, string? show = null,
+        string? customPattern = null, string? ignorePatterns = null,
+        bool renameSubtitles = false, CancellationToken ct = default,
+        IReadOnlyDictionary<string, string>? overrides = null)
+    {
+        return _engine.Run(
+            path,
+            previewOnly: preview,
+            recurse: false,
+            style: "S01E01 (\u0646\u0645\u0637 \u0628\u0644\u064a\u0643\u0633 \u0627\u0644\u0642\u064a\u0627\u0633\u064a)",
+            showName: show,
+            cleanTags: false,
+            progress: (c, t) => _progress.Add((c, t)),
+            customPattern: customPattern,
+            ignorePatterns: ignorePatterns,
+            renameSubtitles: renameSubtitles,
+            cancellationToken: ct,
+            nameOverrides: overrides);
+    }
+
+    [Fact]
+    public void CustomPattern_EmbedsTokens()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E03.mkv");
+
+        RunResult r = RunFull(_dir, preview: true, show: "My Show",
+            customPattern: "{show} - S{season}E{ep3} [My EP{ep2} of {ep}]");
+
+        Assert.Equal(1, r.Stats.Mapped);
+        ReportItem item = Assert.Single(r.Log, i => i.Type == "\u0645\u0639\u062f\u0644");
+        Assert.Equal("My Show - S1E003 [My EP03 of 3].mkv", item.New);
+    }
+
+    [Fact]
+    public void CustomPattern_NoShowToken_OmitsShowPrefix()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+
+        RunResult r = RunFull(_dir, preview: true, show: "My Show",
+            customPattern: "E{ep2}");
+
+        Assert.Equal(1, r.Stats.Mapped);
+        ReportItem item = Assert.Single(r.Log, i => i.Type == "\u0645\u0639\u062f\u0644");
+        Assert.Equal("E01.mkv", item.New);
+    }
+
+    [Fact]
+    public void IgnorePatterns_ExcludesSampleFiles()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "show.sample.mkv");
+
+        RunResult r = RunFull(_dir, preview: true, show: "My Show", ignorePatterns: "sample");
+
+        Assert.Equal(1, r.Stats.Mapped);
+        Assert.Contains(r.OutputLines, l => l.Contains("\u064a\u0637\u0627\u0628\u0642 \u0646\u0645\u0637 \u0627\u0644\u0627\u0633\u062a\u0628\u0639\u0627\u062f"));
+        ReportItem ignored = Assert.Single(r.Log, i => i.Type == "\u0645\u062a\u062c\u0627\u0647\u0644" && i.Name == "show.sample.mkv");
+        Assert.Equal("\u064a\u0637\u0627\u0628\u0642 \u0646\u0645\u0637 \u0627\u0644\u0627\u0633\u062a\u0628\u0639\u0627\u062f", ignored.Reason);
+    }
+
+    [Fact]
+    public void IgnorePatterns_MultiplePatterns_CommaSeparated()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "trailer.S01E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "extra.S01E01.mkv");
+
+        RunResult r = RunFull(_dir, preview: true, show: "My Show", ignorePatterns: "trailer, extra");
+
+        Assert.Equal(1, r.Stats.Mapped);
+        Assert.Equal(2, r.Stats.Ignored);
+    }
+
+    [Fact]
+    public void Subtitles_RenameMatchingInExecuteMode()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.srt");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.en.srt");
+
+        RunFull(_dir, preview: false, show: "My Show", renameSubtitles: true);
+
+        Assert.True(File.Exists(Path.Combine(_dir, "My Show-S01E001.mkv")));
+        Assert.True(File.Exists(Path.Combine(_dir, "My Show-S01E001.srt")));
+        Assert.True(File.Exists(Path.Combine(_dir, "My Show-S01E001.en.srt")));
+        Assert.False(File.Exists(Path.Combine(_dir, "ep.S01E01.srt")));
+    }
+
+    [Fact]
+    public void Subtitles_NotRenamedWhenFlagOff()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.srt");
+
+        RunFull(_dir, preview: false, show: "My Show", renameSubtitles: false);
+
+        Assert.True(File.Exists(Path.Combine(_dir, "My Show-S01E001.mkv")));
+        Assert.True(File.Exists(Path.Combine(_dir, "ep.S01E01.srt")));
+    }
+
+    [Fact]
+    public void Cancellation_StopsEarlyAndMarksCancelled()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E02.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E03.mkv");
+
+        var cts = new CancellationTokenSource();
+        RunResult r = _engine.Run(
+            _dir,
+            previewOnly: true,
+            recurse: false,
+            style: "S01E01 (\u0646\u0645\u0637 \u0628\u0644\u064a\u0643\u0633 \u0627\u0644\u0642\u064a\u0627\u0633\u064a)",
+            showName: "My Show",
+            cleanTags: false,
+            progress: (c, t) =>
+            {
+                _progress.Add((c, t));
+                cts.Cancel();
+            },
+            cancellationToken: cts.Token);
+
+        Assert.True(r.Cancelled);
+        Assert.Contains(r.OutputLines, l => l.Contains("\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u0639\u0645\u0644\u064a\u0629 \u064a\u062f\u0648\u064a\u0627\u064b"));
+        Assert.Equal(1, r.Stats.Mapped);
+    }
+
+    [Fact]
+    public void NameOverride_ReplacesGeneratedName()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E05.mkv");
+
+        RunResult r = RunFull(_dir, preview: true, show: "My Show",
+            overrides: new Dictionary<string, string> { ["ep.S01E05.mkv"] = "My Custom-Name.mkv" });
+
+        ReportItem item = Assert.Single(r.Log, i => i.Type == "\u0645\u0639\u062f\u0644");
+        Assert.Equal("My Custom-Name.mkv", item.New);
+    }
+
+    [Fact]
+    public void NameOverride_EqualToOriginal_CountsAsCorrect()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+
+        RunResult r = RunFull(_dir, preview: true, show: "My Show",
+            overrides: new Dictionary<string, string> { ["ep.S01E01.mkv"] = "ep.S01E01.mkv" });
+
+        Assert.Equal(1, r.Stats.Correct);
+        Assert.Equal(0, r.Stats.Mapped);
+    }
 }

@@ -30,7 +30,8 @@ public static class EpisodeNameGenerator
     }
 
     public static (int? Episode, string? NewName) GenerateNewName(
-        FileInfo file, string? rootPath, string style, string? showName, bool cleanTags)
+        FileInfo file, string? rootPath, string style, string? showName, bool cleanTags,
+        string? customPattern = null)
     {
         string nameLat = TextNormalizer.Normalize(file.Name);
         string nameBase = TextNormalizer.Normalize(Path.GetFileNameWithoutExtension(file.Name));
@@ -70,8 +71,17 @@ public static class EpisodeNameGenerator
 
         if (ep is null) return (null, null);
 
-        string pattern = NameFormatter.Format(season, ep.Value, style);
+        bool isCustom = !string.IsNullOrWhiteSpace(customPattern);
+        string pattern = isCustom
+            ? NameFormatter.FormatCustomTemplate(season, ep.Value, showName?.Trim(), customPattern)
+            : NameFormatter.Format(season, ep.Value, style);
         string show = showName?.Trim() ?? string.Empty;
+
+        if (isCustom)
+        {
+            string trimmed = pattern.Trim();
+            return (ep, trimmed.Length > 0 ? $"{trimmed}{file.Extension}" : $"{file.Extension}");
+        }
 
         if (show.Length > 0)
         {

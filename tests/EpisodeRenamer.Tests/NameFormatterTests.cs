@@ -48,4 +48,20 @@ public class NameFormatterTests
     [Fact]
     public void DefaultStyle_UnknownInputFallsBack()
         => Assert.Equal("S05E100", NameFormatter.Format(5, 100, "UnknownStyle"));
+
+    [Theory]
+    [InlineData("{show} S{season}E{ep3}", 3, 7, "My Show", "My Show S3E007")]
+    [InlineData("E{ep2} - {show}", 1, 42, "Test", "E42 - Test")]
+    [InlineData("{season}x{ep}", 2, 15, null, "2x15")]
+    [InlineData("Custom {ep3}", 1, 9, "Ignored", "Custom 009")]
+    public void FormatCustomTemplate_ReplacesTokens(string template, int season, int episode, string? show, string expected)
+        => Assert.Equal(expected, NameFormatter.FormatCustomTemplate(season, episode, show, template));
+
+    [Fact]
+    public void FormatCustomTemplate_NullTemplate_FallsBackToDefault()
+        => Assert.Equal("S01E003", NameFormatter.FormatCustomTemplate(1, 3, null, null));
+
+    [Fact]
+    public void FormatCustomTemplate_EmptyTemplate_FallsBackToDefault()
+        => Assert.Equal("S01E003", NameFormatter.FormatCustomTemplate(1, 3, null, ""));
 }

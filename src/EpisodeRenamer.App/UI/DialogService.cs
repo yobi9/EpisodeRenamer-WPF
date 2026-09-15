@@ -32,6 +32,23 @@ internal static class DialogService
         return ok == true ? dlg.FileName : null;
     }
 
+    internal static string? PickOpenPath(Window? owner, string? initialDirectory, string filter)
+    {
+        if (owner == null) return null;
+        if (IsHeadless()) return null;
+        var dlg = new OpenFileDialog
+        {
+            Filter = filter,
+            CheckFileExists = true
+        };
+        if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
+        {
+            dlg.InitialDirectory = initialDirectory;
+        }
+        bool? ok = dlg.ShowDialog(owner);
+        return ok == true ? dlg.FileName : null;
+    }
+
     private static bool IsHeadless() =>
         Environment.GetEnvironmentVariable("EPISODE_RENAMER_HEADLESS") == "1";
 }
