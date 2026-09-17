@@ -309,6 +309,30 @@ public class FileProcessingEngineTests : IDisposable
     }
 
     [Fact]
+    public void PreCancelledToken_ReturnsGracefullyWithoutMissingFile()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E05.mkv");
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        RunResult r = _engine.Run(
+            _dir,
+            previewOnly: true,
+            recurse: false,
+            style: "S01E01 (\u0646\u0645\u0637 \u0628\u0644\u064a\u0643\u0633 \u0627\u0644\u0642\u064a\u0627\u0633\u064a)",
+            showName: "My Show",
+            cleanTags: false,
+            cancellationToken: cts.Token);
+
+        Assert.True(r.Cancelled);
+        Assert.Equal(0, r.Stats.Mapped);
+        Assert.Null(r.MissingFile);
+        Assert.False(File.Exists(Path.Combine(_dir, "\u0627\u0644\u062d\u0644\u0642\u0627\u062a \u0627\u0644\u0645\u0641\u0642\u0648\u062f\u0629.txt")));
+    }
+
+    [Fact]
     public void NameOverride_ReplacesGeneratedName()
     {
         TestHelpers.NewTempFileName(_dir, "ep.S01E05.mkv");
@@ -330,5 +354,50 @@ public class FileProcessingEngineTests : IDisposable
 
         Assert.Equal(1, r.Stats.Correct);
         Assert.Equal(0, r.Stats.Mapped);
+    }
+
+    [Fact]
+    public void Preview_SortsWithinSeasonNumerically()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E100.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E9.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E10.mkv");
+
+        RunResult r = Run(_dir, preview: true, show: "My Show");
+
+        List<string?> order = r.Log.Where(i => i.Type == "\u0645\u0639\u062f\u0644").Select(i => i.Old).ToList();
+        Assert.Equal(new[] { "ep.S01E9.mkv", "ep.S01E10.mkv", "ep.S01E100.mkv" }, order);
+    }
+
+    [Fact]
+    public void Preview_ReportsMissingRunsPerSeason()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E03.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S02E01.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S02E05.mkv");
+
+        RunResult r = Run(_dir, preview: true, show: "My Show");
+
+        Assert.Equal(4, r.Stats.Missing);
+        Assert.Equal(2, r.MissingRunsBySeason.Count);
+        Assert.Equal((1, 2, 2), r.MissingRunsBySeason[0]);
+        Assert.Equal((2, 2, 4), r.MissingRunsBySeason[1]);
+        Assert.Contains(r.OutputLines, l => l.Contains("\u0627\u0644\u0645\u0648\u0633\u0645 01") && l.Contains("\u0627\u0644\u062d\u0644\u0642\u0629 2"));
+        Assert.Contains(r.OutputLines, l => l.Contains("\u0627\u0644\u0645\u0648\u0633\u0645 02") && l.Contains("\u0645\u0646 \u0627\u0644\u062d\u0644\u0642\u0629 2"));
+    }
+
+    [Fact]
+    public void Preview_DoubleEpisode_CountsBothEpisodesForGaps()
+    {
+        TestHelpers.NewTempFileName(_dir, "ep.S01E54.mkv");
+        TestHelpers.NewTempFileName(_dir, "ep.S01E55+56.mkv");
+
+        RunResult r = Run(_dir, preview: true, show: "My Show");
+
+        Assert.Equal(0, r.Stats.Missing);
+        Assert.Equal(2, r.Stats.Mapped);
+        ReportItem item = Assert.Single(r.Log, i => i.Old == "ep.S01E55+56.mkv");
+        Assert.Equal("My Show-S01E055-S01E056.mkv", item.New);
     }
 }

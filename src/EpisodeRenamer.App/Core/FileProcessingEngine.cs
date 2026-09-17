@@ -39,7 +39,7 @@ public sealed class FileProcessingEngine
         List<string> out_ = result.OutputLines;
         void L(string s) => out_.Add(s);
 
-        List<int> episodeNumbers = new();
+        Dictionary<int, List<int>> seasonEpisodes = new();
         string realPath = path?.Trim() ?? string.Empty;
 
         if (!Directory.Exists(realPath))
@@ -83,6 +83,8 @@ public sealed class FileProcessingEngine
 
         files = files
             .OrderBy(f => GetSeasonNumber(f, realPath) ?? int.MaxValue)
+            .ThenBy(f => EpisodeNameGenerator.GetEpisodeNumber(f, realPath) ?? int.MaxValue)
+            .ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         Dictionary<string, string> targetSeen = new(StringComparer.OrdinalIgnoreCase);
@@ -126,7 +128,7 @@ public sealed class FileProcessingEngine
                 L("--------------------------------------------");
             }
 
-            var (ep, newName) = EpisodeNameGenerator.GenerateNewName(file, realPath, style, showName, cleanTags, customPattern);
+            var (ep, epEnd, newName) = EpisodeNameGenerator.GenerateNewNameInfo(file, realPath, style, showName, cleanTags, customPattern);
 
             if (newName is not null && nameOverrides is not null
                 && nameOverrides.TryGetValue(file.Name, out string? manualOverride)
@@ -139,26 +141,34 @@ public sealed class FileProcessingEngine
 
             if (newName is not null)
             {
-                episodeNumbers.Add(ep ?? 0);
+                int seasonKey = seasonH ?? 1;
+                if (!seasonEpisodes.TryGetValue(seasonKey, out List<int>? seasonEps))
+                {
+                    seasonEps = new List<int>();
+                    seasonEpisodes[seasonKey] = seasonEps;
+                }
+                seasonEps.Add(ep ?? 0);
+                if (epEnd is not null) seasonEps.Add(epEnd.Value);
+
                 string targetPath = Path.Combine(file.DirectoryName ?? "", newName);
 
                 if (string.Equals(newName, file.Name, StringComparison.Ordinal))
                 {
                     targetSeen[targetPath] = file.Name;
                     L($"\u2705 {file.Name} \u2014 \u0627\u0644\u0627\u0633\u0645 \u0635\u062d\u064a\u062d \u0628\u0627\u0644\u0641\u0639\u0644");
-                    result.Log.Add(new ReportItem("\u0635\u062d\u064a\u062d", file.Name, file.Name, newName, null));
+                    result.Log.Add(new ReportItem("\u0635\u062d\u064a\u062d", file.Name, file.Name, newName, null) { Season = seasonH, Episode = ep });
                     cntCorrect++;
                 }
                 else if (targetSeen.ContainsKey(targetPath) || IsExists(targetPath))
                 {
-                    result.Log.Add(new ReportItem("\u0645\u062a\u062c\u0627\u0647\u0644", file.Name, null, null, "\u064a\u0648\u062c\u062f \u0645\u0644\u0641 \u0628\u0646\u0641\u0633 \u0627\u0644\u0627\u0633\u0645 \u0645\u0633\u0628\u0642\u0627\u064b"));
+                    result.Log.Add(new ReportItem("\u0645\u062a\u062c\u0627\u0647\u0644", file.Name, null, null, "\u064a\u0648\u062c\u062f \u0645\u0644\u0641 \u0628\u0646\u0641\u0633 \u0627\u0644\u0627\u0633\u0645 \u0645\u0633\u0628\u0642\u0627\u064b") { Season = seasonH, Episode = ep });
                     cntExists++;
                 }
                 else
                 {
                     targetSeen[targetPath] = file.Name;
                     L($"\U0001f504 \u0645\u0646: {file.Name} \u25c4 \u0625\u0644\u0649: {newName}");
-                    result.Log.Add(new ReportItem("\u0645\u0639\u062f\u0644", null, file.Name, newName, null));
+                    result.Log.Add(new ReportItem("\u0645\u0639\u062f\u0644", null, file.Name, newName, null) { Season = seasonH, Episode = ep });
                     cntMap++;
 
                     if (!previewOnly)
@@ -171,20 +181,20 @@ public sealed class FileProcessingEngine
 
                             if (renameSubtitles)
                             {
-                                RenameMatchingSubtitles(file, newName, result);
+                                RenameMatchingSubtitles(file, newName, result, seasonH, cancellationToken);
                             }
                         }
                         catch
                         {
                             L($"\u274c \u0641\u0634\u0644\u062a \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u062a\u0633\u0645\u064a\u0629: {file.Name}");
-                            result.Log.Add(new ReportItem("\u0645\u062a\u062c\u0627\u0647\u0644", file.Name, null, null, "\u0641\u0634\u0644\u062a \u0639\u0645\u0644\u064a\u0629 \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u062a\u0633\u0645\u064a\u0629"));
+                            result.Log.Add(new ReportItem("\u0645\u062a\u062c\u0627\u0647\u0644", file.Name, null, null, "\u0641\u0634\u0644\u062a \u0639\u0645\u0644\u064a\u0629 \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u062a\u0633\u0645\u064a\u0629") { Season = seasonH, Episode = ep });
                         }
                     }
                 }
             }
             else
             {
-                result.Log.Add(new ReportItem("\u0645\u062a\u062c\u0627\u0647\u0644", file.Name, null, null, "\u0644\u0645 \u064a\u0639\u062b\u0631 \u0639\u0644\u0649 \u0631\u0642\u0645 \u062d\u0644\u0642\u0629"));
+                result.Log.Add(new ReportItem("\u0645\u062a\u062c\u0627\u0647\u0644", file.Name, null, null, "\u0644\u0645 \u064a\u0639\u062b\u0631 \u0639\u0644\u0649 \u0631\u0642\u0645 \u062d\u0644\u0642\u0629") { Season = seasonH, Episode = ep });
             }
 
             current++;
@@ -232,30 +242,46 @@ public sealed class FileProcessingEngine
             L($"\u23f1\ufe0f \u0627\u0644\u0648\u0642\u062a \u0627\u0644\u0645\u0633\u062a\u063a\u0631\u0642: {seconds} \u062b\u0627\u0646\u064a\u0629");
         }
 
-        MissingAnalysis analysis = GapAnalyzer.Analyze(episodeNumbers);
+        List<(int Season, int Start, int End)> runsBySeason = new();
+        int missingTotal = 0;
+        foreach (var seasonPair in seasonEpisodes.OrderBy(pair => pair.Key))
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                result.Cancelled = true;
+                break;
+            }
+            MissingAnalysis seasonAnalysis = GapAnalyzer.Analyze(seasonPair.Value, cancellationToken);
+            missingTotal += seasonAnalysis.Count;
+            foreach (var run in seasonAnalysis.Runs)
+                runsBySeason.Add((seasonPair.Key, run.Start, run.End));
+        }
 
         if (!result.Cancelled)
         {
-            result.MissingRuns.AddRange(analysis.Runs);
+            foreach (var run in runsBySeason)
+                result.MissingRuns.Add((run.Start, run.End));
+            result.MissingRunsBySeason.AddRange(runsBySeason);
 
-            if (analysis.Count > 0)
+            if (missingTotal > 0)
             {
                 L("");
-                L($"\u26a0\ufe0f \u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u062d\u0644\u0642\u0627\u062a \u0627\u0644\u0645\u0641\u0642\u0648\u062f\u0629 ({analysis.Count} \u062d\u0644\u0642\u0629 \u0645\u0641\u0642\u0648\u062f\u0629):");
+                L($"\u26a0\ufe0f \u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u062d\u0644\u0642\u0627\u062a \u0627\u0644\u0645\u0641\u0642\u0648\u062f\u0629 ({missingTotal} \u062d\u0644\u0642\u0629 \u0645\u0641\u0642\u0648\u062f\u0629):");
                 L("--------------------------------------------");
                 L("\u064a\u0648\u062c\u062f \u0646\u0642\u0635 \u0641\u064a \u062a\u0633\u0644\u0633\u0644 \u0627\u0644\u062d\u0644\u0642\u0627\u062a \u062f\u0627\u062e\u0644 \u0627\u0644\u0645\u062c\u0644\u062f\u060c \u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649:");
                 int shown = 0;
-                foreach (var run in analysis.Runs)
+                foreach (var run in runsBySeason)
                 {
                     if (shown >= 15)
                     {
-                        L($"... ({analysis.Runs.Count - shown} \u0646\u0637\u0627\u0642\u0627\u062a \u0623\u062e\u0631\u0649)");
+                        L($"... ({runsBySeason.Count - shown} \u0646\u0637\u0627\u0642\u0627\u062a \u0623\u062e\u0631\u0649)");
                         break;
                     }
+                    string prefix = SeasonDisplay(run.Season);
                     if (run.Start == run.End)
-                        L($"\u2022 \u0627\u0644\u062d\u0644\u0642\u0629 {run.Start}");
+                        L($"\u2022 {prefix} \u0627\u0644\u062d\u0644\u0642\u0629 {run.Start}");
                     else
-                        L($"\u2022 \u0645\u0646 \u0627\u0644\u062d\u0644\u0642\u0629 {run.Start} \u0625\u0644\u0649 {run.End}");
+                        L($"\u2022 {prefix} \u0645\u0646 \u0627\u0644\u062d\u0644\u0642\u0629 {run.Start} \u0625\u0644\u0649 {run.End}");
                     shown++;
                 }
             }
@@ -265,21 +291,33 @@ public sealed class FileProcessingEngine
                 L("\u2705 \u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0644\u0642\u0627\u062a \u0645\u0641\u0642\u0648\u062f\u0629");
             }
 
-            string? savedFile = MissingEpisodesWriter.WriteFile(realPath, analysis);
+            string? savedFile = MissingEpisodesWriter.WriteFile(realPath, runsBySeason);
             if (savedFile is not null)
             {
                 L("");
                 L("\U0001f4be \u062a\u0645 \u062d\u0641\u0638 \u0645\u0644\u0641 \u0627\u0644\u062d\u0644\u0642\u0627\u062a \u0627\u0644\u0645\u0641\u0642\u0648\u062f\u0629:");
                 L(savedFile);
             }
+            else if (runsBySeason.Count > 0)
+            {
+                string targetFile = Path.Combine(realPath, "\u0627\u0644\u062d\u0644\u0642\u0627\u062a \u0627\u0644\u0645\u0641\u0642\u0648\u062f\u0629.txt");
+                L("");
+                L("\u26a0\ufe0f \u062a\u0639\u0630\u0631 \u062d\u0641\u0638 \u0645\u0644\u0641 \u0627\u0644\u062d\u0644\u0642\u0627\u062a \u0627\u0644\u0645\u0641\u0642\u0648\u062f\u0629: " + targetFile);
+            }
             result.MissingFile = savedFile;
         }
 
-        result.Stats = new RunStats(cntMap, cntCorrect, ignoredItems.Count, analysis.Count);
+        result.Stats = new RunStats(cntMap, cntCorrect, ignoredItems.Count, missingTotal);
         return result;
     }
 
-    private void RenameMatchingSubtitles(FileInfo videoFile, string newVideoName, RunResult result)
+    private static string SeasonDisplay(int season)
+        => season <= 0
+            ? "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f"
+            : $"\u0627\u0644\u0645\u0648\u0633\u0645 {season.ToString().PadLeft(2, '0')}";
+
+    private void RenameMatchingSubtitles(
+        FileInfo videoFile, string newVideoName, RunResult result, int? season, CancellationToken cancellationToken)
     {
         DirectoryInfo? dir = videoFile.Directory;
         if (dir is null) return;
@@ -289,6 +327,7 @@ public sealed class FileProcessingEngine
 
         foreach (FileInfo f in dir.EnumerateFiles("*"))
         {
+            if (cancellationToken.IsCancellationRequested) return;
             if (SubtitleExtensions.Contains(f.Extension.TrimStart('.').ToLowerInvariant()))
             {
                 string subBase = Path.GetFileNameWithoutExtension(f.Name);
@@ -308,7 +347,7 @@ public sealed class FileProcessingEngine
                 {
                     File.Move(f.FullName, newSubPath);
                     _undoLog.Add(new RenameEntry(f.FullName, newSubPath));
-                    result.Log.Add(new ReportItem("\u0645\u0639\u062f\u0644", null, f.Name, newSubName, null));
+                    result.Log.Add(new ReportItem("\u0645\u0639\u062f\u0644", null, f.Name, newSubName, null) { Season = season });
                 }
                 catch
                 {

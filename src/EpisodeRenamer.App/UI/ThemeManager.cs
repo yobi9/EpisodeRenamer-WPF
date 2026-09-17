@@ -19,8 +19,6 @@ internal static class ThemeManager
     internal const string KeyStatusModifiedBrush = "StatusModifiedBrush";
     internal const string KeyStatusCorrectBrush = "StatusCorrectBrush";
     internal const string KeyStatusIgnoredBrush = "StatusIgnoredBrush";
-    internal const string KeyConsoleBackground = "ConsoleBackground";
-    internal const string KeyConsoleForeground = "ConsoleForeground";
     internal const string KeyThemeButtonBackground = "ThemeButtonBackground";
 
     internal const string LightGlyph = "\u2600\uFE0F";
@@ -31,8 +29,9 @@ internal static class ThemeManager
     internal static void Apply(Window window, bool dark)
     {
         var palette = dark ? DarkPalette() : LightPalette();
+        var target = Application.Current?.Resources ?? window.Resources;
         foreach (var pair in palette)
-            window.Resources[pair.Key] = pair.Value;
+            target[pair.Key] = pair.Value;
     }
 
     private static IReadOnlyDictionary<string, SolidColorBrush> LightPalette() => new Dictionary<string, SolidColorBrush>
@@ -49,8 +48,6 @@ internal static class ThemeManager
         [KeyStatusModifiedBrush] = Brush(0xE8, 0xF8, 0xF5),
         [KeyStatusCorrectBrush] = Brush(0xF4, 0xF4, 0xF4),
         [KeyStatusIgnoredBrush] = Brush(0xFD, 0xEC, 0xEA),
-        [KeyConsoleBackground] = Brush(0x00, 0x00, 0x00),
-        [KeyConsoleForeground] = Brush(0x32, 0xCD, 0x32),
         [KeyThemeButtonBackground] = Brush(0xFF, 0xFF, 0xFF)
     };
 
@@ -68,8 +65,6 @@ internal static class ThemeManager
         [KeyStatusModifiedBrush] = Brush(0x1E, 0x4A, 0x38),
         [KeyStatusCorrectBrush] = Brush(0x2B, 0x2B, 0x2B),
         [KeyStatusIgnoredBrush] = Brush(0x4A, 0x2E, 0x2E),
-        [KeyConsoleBackground] = Brush(0x00, 0x00, 0x00),
-        [KeyConsoleForeground] = Brush(0x32, 0xCD, 0x32),
         [KeyThemeButtonBackground] = Brush(0x40, 0x40, 0x40)
     };
 

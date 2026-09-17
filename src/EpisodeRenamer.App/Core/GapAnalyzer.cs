@@ -4,43 +4,55 @@ public sealed record MissingAnalysis(int Count, IReadOnlyList<int> Missing, IRea
 
 public static class GapAnalyzer
 {
-    public static MissingAnalysis Analyze(IReadOnlyCollection<int> episodeNumbers)
+    public static MissingAnalysis Analyze(
+        IReadOnlyCollection<int> episodeNumbers,
+        CancellationToken cancellationToken = default)
     {
         List<int> sorted = episodeNumbers.Distinct().OrderBy(x => x).ToList();
         if (sorted.Count == 0)
             return new MissingAnalysis(0, Array.Empty<int>(), Array.Empty<(int, int)>());
 
-        int min = sorted[0];
-        int max = sorted[^1];
+        const int MaxMissingItems = 10000;
 
         List<int> missing = new();
-        for (int i = min; i <= max; i++)
-        {
-            if (!sorted.Contains(i))
-                missing.Add(i);
-        }
-
         List<(int Start, int End)> runs = new();
-        if (missing.Count > 0)
+        long totalCount = 0;
+
+        for (int i = 0; i < sorted.Count - 1; i++)
         {
-            int start = missing[0];
-            int prev = missing[0];
-            for (int i = 1; i < missing.Count; i++)
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            int a = sorted[i];
+            int b = sorted[i + 1];
+            if (b - a <= 1)
+                continue;
+
+            int start = a + 1;
+            int end = b - 1;
+            runs.Add((start, end));
+
+            long gapSize = (long)b - a - 1;
+            totalCount += gapSize;
+
+            if (missing.Count < MaxMissingItems)
             {
-                if (missing[i] == prev + 1)
+                int toAdd = (int)Math.Min(gapSize, MaxMissingItems - missing.Count);
+                for (int m = start; m < start + toAdd; m++)
                 {
-                    prev = missing[i];
-                }
-                else
-                {
-                    runs.Add((start, prev));
-                    start = missing[i];
-                    prev = missing[i];
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+                    missing.Add(m);
                 }
             }
-            runs.Add((start, prev));
         }
 
-        return new MissingAnalysis(missing.Count, missing, runs);
+        int count = totalCount > int.MaxValue ? int.MaxValue : (int)totalCount;
+        // للفجوات الصغيرة نحافظ على التوافق: Count == Missing.Count
+        // للفجوات الهائلة (مادة عربية برقم كبير) نعيد Count الحقيقي لكن Missing مقتطعة
+        if (totalCount <= MaxMissingItems)
+            count = missing.Count;
+
+        return new MissingAnalysis(count, missing, runs);
     }
 }

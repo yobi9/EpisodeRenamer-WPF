@@ -143,4 +143,84 @@ public class EpisodeNameGeneratorTests
         }
         finally { Directory.Delete(tmp, true); }
     }
+
+    [Fact]
+    public void GenerateNewNameInfo_DoubleEpisode_PlusSign()
+    {
+        var tmp = NewTempDir();
+        var dir = Directory.CreateDirectory(tmp);
+        try
+        {
+            var fi = new FileInfo(Path.Combine(dir.FullName, "Show.S01E55+56.mkv"));
+            var (ep, epEnd, name) = EpisodeNameGenerator.GenerateNewNameInfo(fi, tmp, "S01E01 (\u0646\u0645\u0637)", "My Show", false);
+            Assert.Equal(55, ep);
+            Assert.Equal(56, epEnd);
+            Assert.Equal("My Show-S01E055-S01E056.mkv", name);
+        }
+        finally { Directory.Delete(tmp, true); }
+    }
+
+    [Fact]
+    public void GenerateNewNameInfo_DoubleEpisode_Hyphen()
+    {
+        var tmp = NewTempDir();
+        var dir = Directory.CreateDirectory(tmp);
+        try
+        {
+            var fi = new FileInfo(Path.Combine(dir.FullName, "Show.S01E55-56.mkv"));
+            var (ep, epEnd, name) = EpisodeNameGenerator.GenerateNewNameInfo(fi, tmp, "S01E01 (\u0646\u0645\u0637)", null, false);
+            Assert.Equal(55, ep);
+            Assert.Equal(56, epEnd);
+            Assert.Equal("S01E055-S01E056.mkv", name);
+        }
+        finally { Directory.Delete(tmp, true); }
+    }
+
+    [Fact]
+    public void GenerateNewNameInfo_DoubleEpisode_AdjacentE()
+    {
+        var tmp = NewTempDir();
+        var dir = Directory.CreateDirectory(tmp);
+        try
+        {
+            var fi = new FileInfo(Path.Combine(dir.FullName, "Show.S01E55E56.mkv"));
+            var (ep, epEnd, name) = EpisodeNameGenerator.GenerateNewNameInfo(fi, tmp, "S01E01 (\u0646\u0645\u0637)", null, false);
+            Assert.Equal(55, ep);
+            Assert.Equal(56, epEnd);
+            Assert.Equal("S01E055-S01E056.mkv", name);
+        }
+        finally { Directory.Delete(tmp, true); }
+    }
+
+    [Theory]
+    [InlineData("Show.S01E05.1080p.mkv")]
+    [InlineData("Show.S01E05.x265.mkv")]
+    [InlineData("Show.S01E05.720p.WEB.mkv")]
+    public void GenerateNewNameInfo_DoesNotTreatResolutionAsDouble(string fileName)
+    {
+        var tmp = NewTempDir();
+        var dir = Directory.CreateDirectory(tmp);
+        try
+        {
+            var fi = new FileInfo(Path.Combine(dir.FullName, fileName));
+            var (ep, epEnd, name) = EpisodeNameGenerator.GenerateNewNameInfo(fi, tmp, "S01E01 (\u0646\u0645\u0637)", null, false);
+            Assert.Equal(5, ep);
+            Assert.Null(epEnd);
+            Assert.Equal("S01E005.mkv", name);
+        }
+        finally { Directory.Delete(tmp, true); }
+    }
+
+    [Fact]
+    public void GetEpisodeNumber_MultiEpisode_ReturnsFirst()
+    {
+        var tmp = NewTempDir();
+        var dir = Directory.CreateDirectory(tmp);
+        try
+        {
+            var fi = new FileInfo(Path.Combine(dir.FullName, "Show.S01E55+56.mkv"));
+            Assert.Equal(55, EpisodeNameGenerator.GetEpisodeNumber(fi, tmp));
+        }
+        finally { Directory.Delete(tmp, true); }
+    }
 }

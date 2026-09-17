@@ -64,4 +64,25 @@ public class NameFormatterTests
     [Fact]
     public void FormatCustomTemplate_EmptyTemplate_FallsBackToDefault()
         => Assert.Equal("S01E003", NameFormatter.FormatCustomTemplate(1, 3, null, ""));
+
+    [Fact]
+    public void Format_WithSecondEpisode_UsesSameStyleAndHyphen()
+        => Assert.Equal("S01E055-S01E056", NameFormatter.Format(1, 55, 56, "S01E01 (\u0646\u0645\u0637\u0628)"));
+
+    [Fact]
+    public void Format_WithSecondEpisode_ArabicStyle()
+        => Assert.Equal(
+            "\u0627\u0644\u0645\u0648\u0633\u0645 01 \u0627\u0644\u062d\u0644\u0642\u0629 55-\u0627\u0644\u0645\u0648\u0633\u0645 01 \u0627\u0644\u062d\u0644\u0642\u0629 56",
+            NameFormatter.Format(1, 55, 56, "\u0627\u0644\u0645\u0648\u0633\u0645 01 - \u0627\u0644\u062d\u0644\u0642\u0629 01 (\u0639\u0631\u0628\u064a)"));
+
+    [Theory]
+    [InlineData("S01E{ep3}-E{epEnd3}", "S01E055-E056")]
+    [InlineData("{ep2}/{epEnd2}", "55/56")]
+    [InlineData("{ep}-{epEnd}", "55-56")]
+    public void FormatCustomTemplate_EpEndTokens(string template, string expected)
+        => Assert.Equal(expected, NameFormatter.FormatCustomTemplate(1, 55, 56, null, template));
+
+    [Fact]
+    public void FormatCustomTemplate_NoEndToken_DuplicatesTemplateForBothEpisodes()
+        => Assert.Equal("E055-E056", NameFormatter.FormatCustomTemplate(1, 55, 56, null, "E{ep3}"));
 }

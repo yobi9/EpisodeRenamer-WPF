@@ -10,6 +10,8 @@ on:
 jobs:
   build-test-publish:
     runs-on: windows-latest
+    env:
+      ARTIFACT_BASENAME: EpisodeRenamer-${{ github.ref_name }}-win-x86
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,16 +37,16 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path publish-x86/EpisodeRenamer.App.exe) {
-            Compress-Archive -Path publish-x86/* -DestinationPath EpisodeRenamer-v1.1-win-x86.zip
+            Compress-Archive -Path publish-x86/* -DestinationPath "$env:ARTIFACT_BASENAME.zip"
           }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: EpisodeRenamer-v1.1-win-x86
+          name: ${{ env.ARTIFACT_BASENAME }}
           path: |
             publish-x86/
-            EpisodeRenamer-v1.1-win-x86.zip
+            ${{ env.ARTIFACT_BASENAME }}.zip
           if-no-files-found: error
 
   release:
@@ -53,6 +55,8 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      ARTIFACT_BASENAME: EpisodeRenamer-${{ github.ref_name }}-win-x86
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,7 +64,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: EpisodeRenamer-v1.1-win-x86
+          name: ${{ env.ARTIFACT_BASENAME }}
           path: release-artifacts
 
       - name: Create GitHub Release

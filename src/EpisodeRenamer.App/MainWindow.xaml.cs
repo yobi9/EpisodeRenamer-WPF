@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Windows.Media;
 using EpisodeRenamer.App.UI;
 using EpisodeRenamer.Core;
 
@@ -39,16 +42,18 @@ public partial class MainWindow : Window
     private readonly UndoLogManager _undo;
     private readonly FileProcessingEngine _engine;
     private readonly DispatcherTimer _liveTimer;
-    private readonly ObservableCollection<PreviewRow> _previewRows = new();
+    private readonly ObservableCollectionEx<PreviewRow> _previewRows = new();
+    private readonly List<string> _logLines = new();
 
     private CancellationTokenSource? _cts;
+    private RunStatus _currentStatus = RunStatusResolver.Idle();
     private bool _suppressLive;
     private bool _isRunning;
     private bool _isDark;
     private string? _lastRunMode;
     private RunStats? _lastRunStats;
     private List<ReportItem> _lastRunLog = new();
-    private List<(int Start, int End)> _lastMissingRuns = new();
+    private List<(int Season, int Start, int End)> _lastMissingRunsBySeason = new();
 
     public MainWindow() : this(null, null)
     {
@@ -58,6 +63,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         previewGrid.ItemsSource = _previewRows;
+        ConfigurePreviewView();
         _settingsPath = settingsPath ?? Path.Combine(ResolveAppRoot(), "EpisodeRenamer.settings.json");
         _undoPath = undoPath ?? Path.Combine(ResolveAppRoot(), "EpisodeRenamer.undo.json");
         _settings = new SettingsManager(_settingsPath);
@@ -81,12 +87,15 @@ public partial class MainWindow : Window
         }
         WindowBoundsHelper.Apply(this, saved);
         ApplyTheme(ThemeManager.IsDark(saved));
+        SetStatus(RunStatusResolver.Idle());
     }
 
     internal static bool IsHeadlessMode =>
         Environment.GetEnvironmentVariable("EPISODE_RENAMER_HEADLESS") == "1";
 
-    internal string OutputText => output.Text;
+    internal string OutputText => string.Join(Environment.NewLine, _logLines);
+
+    internal RunStatus CurrentStatus => _currentStatus;
 
     internal string PatternBoxText => patternBox.Text.Trim();
     internal string IgnoreBoxText => ignoreBox.Text.Trim();
@@ -145,6 +154,7 @@ public partial class MainWindow : Window
         }
         bool dark = !_isDark;
         ApplyTheme(dark);
+        SetStatus(_currentStatus);
         _settings.Save(CurrentSettings());
         AppendLine(dark
             ? "\uD83C\uDF19 \u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0644\u064A\u0644\u064A"
@@ -153,8 +163,7 @@ public partial class MainWindow : Window
 
     private void AppendLine(string text)
     {
-        output.AppendText(text + Environment.NewLine);
-        output.ScrollToEnd();
+        _logLines.Add(text);
     }
 
     private void SetBusy(bool busy)
@@ -166,6 +175,25 @@ public partial class MainWindow : Window
         stopBtn.IsEnabled = busy;
         exportSettingsBtn.IsEnabled = !busy;
         importSettingsBtn.IsEnabled = !busy;
+    }
+
+    /// <summary>
+    /// Applies a resolved run status to the persistent strip (F-01).
+    /// Tint reuses existing theme keys; icon + text carry the meaning, never color alone.
+    /// </summary>
+    internal void SetStatus(RunStatus status)
+    {
+        _currentStatus = status;
+        statusText.Text = status.ShortText;
+        statusText.ToolTip = status.Detail;
+        string? key = status.Kind switch
+        {
+            RunStatusKind.Success => ThemeManager.KeyStatusModifiedBrush,
+            RunStatusKind.ReportWarning => ThemeManager.KeyStatusIgnoredBrush,
+            RunStatusKind.Invalid => ThemeManager.KeyStatusIgnoredBrush,
+            _ => null
+        };
+        statusBorder.Background = key is not null && TryFindResource(key) is Brush brush ? brush : null;
     }
 
     private void AutoFillShowName(string path)
@@ -304,6 +332,7 @@ public partial class MainWindow : Window
             try { ApplySavedSettings(imported); }
             finally { _suppressLive = false; }
             ApplyTheme(ThemeManager.IsDark(imported));
+            SetStatus(_currentStatus);
             _settings.Save(CurrentSettings());
             AppendLine("\u2705 \u062a\u0645 \u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a: " + openPath);
         }
@@ -350,7 +379,7 @@ public partial class MainWindow : Window
             string? savePath = DialogService.PickSavePath(this, initialDir, defaultName,
                 "Text file (*.txt)|*.txt|CSV file (*.csv)|*.csv");
             if (string.IsNullOrWhiteSpace(savePath)) return;
-            var lines = ReportExporter.BuildLines(mode, _lastRunStats, _lastMissingRuns, _lastRunLog);
+            var lines = ReportExporter.BuildLines(mode, _lastRunStats, _lastMissingRunsBySeason, _lastRunLog);
             ReportExporter.WriteReport(savePath, lines);
             AppendLine("\uD83D\uDCBE \u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u062A\u0642\u0631\u064A\u0631: " + savePath);
         }
@@ -365,8 +394,9 @@ public partial class MainWindow : Window
         if (_isRunning) return;
         _isRunning = true;
         SetBusy(true);
-        output.Clear();
+        _logLines.Clear();
         progress.Value = 0;
+        SetStatus(RunStatusResolver.Busy(previewOnly));
 
         string path = pathBox.Text.Trim();
         int selectedStyle = styleDropdown.SelectedIndex >= 0 && styleDropdown.SelectedIndex < StyleItems.Length
@@ -395,36 +425,62 @@ public partial class MainWindow : Window
 
         Task.Run(() =>
         {
-            RunResult result = _engine.Run(path, previewOnly, recurse, style, showName, cleanTags,
-                (current, total) =>
-                {
-                    int pct = total > 0 ? (int)((long)current * 100 / total) : 0;
-                    progress.Dispatcher.BeginInvoke(new Action(() => progress.Value = pct));
-                },
-                customPattern, ignorePatterns, renameSubtitles, ct, overrides);
-
-            progress.Dispatcher.BeginInvoke(new Action(() =>
+            try
             {
-                foreach (string line in result.OutputLines) AppendLine(line);
-                progress.Value = 100;
-                _lastRunMode = result.Mode;
-                _lastRunStats = result.Stats;
-                _lastRunLog = result.Log;
-                _lastMissingRuns = result.MissingRuns;
-                PopulatePreviewGrid(result);
-                if (!previewOnly) _settings.Save(CurrentSettings());
-                _cts = null;
-                _isRunning = false;
-                SetBusy(false);
-                if (!previewOnly && !result.Cancelled && result.Stats.Mapped > 0 && !IsHeadlessMode)
-                    ShowToast("\u2705 \u062a\u0645 \u0625\u0639\u0627\u062f\u0629 \u062a\u0633\u0645\u064a\u0629 " + result.Stats.Mapped + " \u0645\u0644\u0641\u0627\u064b");
-            }));
+                RunResult result = _engine.Run(path, previewOnly, recurse, style, showName, cleanTags,
+                    (current, total) =>
+                    {
+                        int pct = total > 0 ? (int)((long)current * 100 / total) : 0;
+                        progress.Dispatcher.BeginInvoke(new Action(() => progress.Value = pct));
+                    },
+                    customPattern, ignorePatterns, renameSubtitles, ct, overrides);
+
+                progress.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    foreach (string line in result.OutputLines) AppendLine(line);
+                    progress.Value = 100;
+                    SetStatus(RunStatusResolver.Resolve(result, path));
+                    _lastRunMode = result.Mode;
+                    _lastRunStats = result.Stats;
+                    _lastRunLog = result.Log;
+                    _lastMissingRunsBySeason = result.MissingRunsBySeason;
+                    PopulatePreviewGrid(result);
+                    if (!previewOnly) _settings.Save(CurrentSettings());
+                    _cts = null;
+                    _isRunning = false;
+                    SetBusy(false);
+                    if (!previewOnly && !result.Cancelled && result.Stats.Mapped > 0 && !IsHeadlessMode)
+                        ShowToast("\u2705 \u062a\u0645 \u0625\u0639\u0627\u062f\u0629 \u062a\u0633\u0645\u064a\u0629 " + result.Stats.Mapped + " \u0645\u0644\u0641\u0627\u064b");
+                }));
+            }
+            catch (Exception ex)
+            {
+                ErrorLogger.Write(ex, "Processing");
+                progress.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    AppendLine("\u274C \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u0645\u0639\u0627\u0644\u062c\u0629: " + ex.Message);
+                    _cts = null;
+                    _isRunning = false;
+                    SetBusy(false);
+                    SetStatus(RunStatusResolver.Idle());
+                }));
+            }
         });
+    }
+
+    private void ConfigurePreviewView()
+    {
+        ICollectionView view = CollectionViewSource.GetDefaultView(_previewRows);
+        view.SortDescriptions.Clear();
+        view.SortDescriptions.Add(new SortDescription(nameof(PreviewRow.SortKey), ListSortDirection.Ascending));
+        view.GroupDescriptions.Clear();
+        view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(PreviewRow.SeasonLabel)));
     }
 
     private void PopulatePreviewGrid(RunResult result)
     {
         _previewRows.Clear();
+        var items = new List<PreviewRow>(result.Log.Count);
         foreach (ReportItem item in result.Log)
         {
             bool editable = item.Type == "\u0645\u0639\u062f\u0644";
@@ -436,14 +492,20 @@ public partial class MainWindow : Window
             };
             string oldName = item.Old ?? item.Name ?? "";
             string newName = item.New ?? "";
-            _previewRows.Add(new PreviewRow
+            items.Add(new PreviewRow
             {
                 Status = status,
                 OldName = oldName,
                 NewName = newName,
-                Editable = editable
+                Editable = editable,
+                Season = item.Season,
+                SortKey = item.Season is null ? int.MaxValue : (item.Season.Value * 100000) + (item.Episode ?? 0),
+                SeasonLabel = item.Season is > 0
+                    ? $"\u0627\u0644\u0645\u0648\u0633\u0645 {item.Season.Value:00}"
+                    : "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f"
             });
         }
+        _previewRows.AddRange(items);
     }
 
     private void ShowToast(string message)

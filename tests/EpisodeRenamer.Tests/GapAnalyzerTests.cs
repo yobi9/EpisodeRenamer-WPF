@@ -56,4 +56,16 @@ public class GapAnalyzerTests
         Assert.Equal((2, 4), result.Runs[0]);
         Assert.Equal((6, 8), result.Runs[1]);
     }
+
+    [Fact]
+    public void PreCancelledToken_ReturnsImmediatelyForHugeRange()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var result = GapAnalyzer.Analyze(new[] { 1, 100000000 }, cts.Token);
+
+        Assert.NotNull(result);
+        Assert.True(result.Count >= 0);
+    }
 }

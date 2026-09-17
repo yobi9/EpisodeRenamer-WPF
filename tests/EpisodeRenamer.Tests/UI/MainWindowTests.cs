@@ -293,4 +293,21 @@ public class MainWindowTests : IDisposable
         }
         finally { Environment.SetEnvironmentVariable("EPISODE_RENAMER_HEADLESS", saved); }
     }
+
+    [Fact]
+    public void MainWindow_ConfiguresSeasonGroupingAndNumericSort()
+    {
+        RunOnSta(() =>
+        {
+            var w = new MainWindow();
+            try
+            {
+                var view = System.Windows.Data.CollectionViewSource.GetDefaultView(w.previewGrid.ItemsSource);
+                var group = Assert.IsType<System.Windows.Data.PropertyGroupDescription>(Assert.Single(view.GroupDescriptions));
+                Assert.Equal("SeasonLabel", group.PropertyName);
+                Assert.Equal("SortKey", Assert.Single(view.SortDescriptions).PropertyName);
+            }
+            finally { w.Close(); }
+        });
+    }
 }

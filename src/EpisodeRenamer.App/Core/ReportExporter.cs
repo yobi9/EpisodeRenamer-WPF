@@ -22,6 +22,25 @@ public static class ReportExporter
         IReadOnlyList<(int Start, int End)> missingRuns,
         IReadOnlyList<ReportItem> log)
     {
+        var bySeason = new List<(int Season, int Start, int End)>(missingRuns.Count);
+        foreach (var run in missingRuns)
+            bySeason.Add((0, run.Start, run.End));
+        return BuildLinesCore(mode, stats, bySeason, log);
+    }
+
+    public static List<string> BuildLines(
+        string mode,
+        RunStats? stats,
+        IReadOnlyList<(int Season, int Start, int End)> missingRunsBySeason,
+        IReadOnlyList<ReportItem> log)
+        => BuildLinesCore(mode, stats, missingRunsBySeason, log);
+
+    private static List<string> BuildLinesCore(
+        string mode,
+        RunStats? stats,
+        IReadOnlyList<(int Season, int Start, int End)> missingRuns,
+        IReadOnlyList<ReportItem> log)
+    {
         bool preview = mode == ModePreview;
         List<string> lines = new();
 
@@ -68,10 +87,11 @@ public static class ReportExporter
         {
             foreach (var run in missingRuns)
             {
+                string prefix = run.Season > 0 ? $"\u0627\u0644\u0645\u0648\u0633\u0645 {run.Season.ToString().PadLeft(2, '0')} - " : "";
                 if (run.Start == run.End)
-                    lines.Add($"\u2022 \u0627\u0644\u062d\u0644\u0642\u0629 {run.Start} \u0645\u0641\u0642\u0648\u062f\u0629.");
+                    lines.Add($"\u2022 {prefix}\u0627\u0644\u062d\u0644\u0642\u0629 {run.Start} \u0645\u0641\u0642\u0648\u062f\u0629.");
                 else
-                    lines.Add($"\u2022 \u0646\u0642\u0635 \u0645\u0646 \u0627\u0644\u062d\u0644\u0642\u0629 {run.Start} \u0625\u0644\u0649 \u0627\u0644\u062d\u0644\u0642\u0629 {run.End}.");
+                    lines.Add($"\u2022 {prefix}\u0646\u0642\u0635 \u0645\u0646 \u0627\u0644\u062d\u0644\u0642\u0629 {run.Start} \u0625\u0644\u0649 \u0627\u0644\u062d\u0644\u0642\u0629 {run.End}.");
             }
         }
         else

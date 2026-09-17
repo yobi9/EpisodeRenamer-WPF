@@ -28,7 +28,6 @@ A professional tool for automatically renaming episode files, designed specifica
 - **أيقونة ومعلومات نسخة** — أيقونة مخصصة ومعلومات الإصدار داخل ملف EXE
 - **CI/CD تلقائي** — بناء واختبار ونشر تلقائي عبر GitHub Actions عند إصدار نسخة جديدة
 - **واجهة عربية كاملة** — واجهة من اليمين لليسار (RTL) مع دعم كامل للعربية
-- **console م.dark** — شاشة متابعة بلون أخضر على أسود تشبه الـ terminal
 - **معاينة مباشرة** — معاينة فورية قبل إعادة التسمية مع تحديث تلقائي
 - **تتبع الحلقات المفقودة** — يكتشف الفجوات في تسلسل الحلقات ويحفظ تقريراً
 - **撤销 (Undo)** — إمكانية التراجع عن آخر عملية إعادة تسمية
@@ -41,16 +40,18 @@ A professional tool for automatically renaming episode files, designed specifica
 
 ## المتطلبات | Requirements
 
-- Windows 7+ (x86 or x64)
-- .NET 8.0 Desktop Runtime ([تحميل](https://dotnet.microsoft.com/download/dotnet/8.0))
+- Windows 10 version 1607+ / Windows 11
+- يعمل على Windows x86، ويعمل على Windows x64 عبر WoW64 (لا يوجد إصدار x64 منفصل)
+- لا يحتاج .NET Runtime — الإصدار ذاتي الاستضافة (self-contained)
 
 ## التثبيت | Installation
 
 ### تحميل الإصدار الجاهز (Binary Release)
 
 1. اذهب إلى [Releases](../../releases)
-2. حمّل أحدث إصدار `EpisodeRenamer.App.exe`
-3. شغّل الملف مباشرة (لا يحتاج تثبيت)
+2. حمّل `EpisodeRenamer-v1.2.0-win-x86.zip`
+3. فك الضغط إلى مجلد تملك صلاحية الكتابة عليه
+4. شغّل `EpisodeRenamer.App.exe` مباشرة (لا يحتاج تثبيتًا ولا .NET Runtime)
 
 ### البناء من المصدر (Build from Source)
 
@@ -73,7 +74,7 @@ dotnet publish src/EpisodeRenamer.App/EpisodeRenamer.App.csproj -c Release -r wi
 
 1. **اختر مجلد الحلقات** — اضغط "تصفح" أو اسحب المجلد إلى النافذة
 2. **أدخل اسم المسلسل** — يُكتشف تلقائياً من اسم المجلد أو اضغط "اقتراح"
-3. **اختر نمط التسمية** — من القائمة المنسدلة (8 أنماط متاحة)
+3. **اختر نمط التسمية** — من القائمة المنسدلة (9 أنماط متاحة)
 4. **معاينة** — اضغط "معاينة" لمراجعة التغييرات قبل التنفيذ
 5. **إعادة التسمية** — اضغط "إعادة تسمية" لتطبيق التغييرات
 
@@ -112,13 +113,18 @@ EpisodeRenamer-WPF/
 │   │   ├── RenameEntry.cs       # نموذج سجل إعادة التسمية
 │   │   ├── RomanNumeralConverter.cs # تحويل الأرقام الرومانية
 │   │   ├── ShowNameDetector.cs  # كشف اسم المسلسل
+│   │   ├── ErrorLogger.cs       # تسجيل الأخطاء
 │   │   └── FileProcessingTypes.cs  # الأنواع المشتركة
 │   ├── UI/                      # مكونات الواجهة
 │   │   ├── NativeFolderPicker.cs # منتقي المجلدات الأصلي
 │   │   ├── ShowNameDialog.cs    # نافذة اسم المسلسل
 │   │   ├── DialogService.cs     # خدمة الحوارات
+│   │   ├── ObservableCollectionEx.cs # مجموعة قابلة للملاحظة مع إضافة دفعية
 │   │   ├── PreviewRow.cs        # صف معاينة DataGrid
-│   │   └── ToastWindow.cs       # إشعار فوري
+│   │   ├── RunStatus.cs         # حالة العملية لشريط الحالة (F-01)
+│   │   ├── ThemeManager.cs      # الوضع الداكن/الفاتح
+│   │   ├── ToastWindow.cs       # إشعار فوري
+│   │   └── WindowBoundsHelper.cs # حفظ حجم النافذة
 │   ├── MainWindow.xaml          # تصميم الواجهة
 │   ├── MainWindow.xaml.cs       # كود الواجهة
 │   ├── App.xaml                 # تطبيق WPF
@@ -127,7 +133,7 @@ EpisodeRenamer-WPF/
 ├── assets/                      # أيقونة التطبيق
 ├── .github/workflows/           # CI/CD تلقائي
 ├── publish-x86/                 # الإصدار المنشور
-└── PLAN.md                      # خطة التطوير
+└── AGENTS.md                    # إرشادات لوكيل AI
 ```
 
 ## الاختبارات | Testing
@@ -136,8 +142,8 @@ EpisodeRenamer-WPF/
 dotnet test
 ```
 
-- **187 اختبار** — اختبارات وحدة + اختبارات تكامل + اختبارات واجهة
-- **11 فئات اختبار** — تغطي جميع مكونات النظام
+- **232 اختبار** — اختبارات وحدة + اختبارات تكامل + اختبارات واجهة
+- **19 فئة اختبار** — تغطي جميع مكونات النظام
 
 ## الترخيص | License
 

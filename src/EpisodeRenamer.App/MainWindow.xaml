@@ -18,21 +18,94 @@
         PreviewKeyDown="Window_PreviewKeyDown"
         Closed="Window_Closed">
     <Window.Resources>
-        <SolidColorBrush x:Key="WindowBackground" Color="#F5F7FA"/>
-        <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#1A1A1A"/>
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#7F8C8D"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#D0D0D0"/>
-        <SolidColorBrush x:Key="GridBackground" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="GridHeaderBackground" Color="#ECF0F1"/>
-        <SolidColorBrush x:Key="GridHeaderForeground" Color="#2C3E50"/>
-        <SolidColorBrush x:Key="GridRowForeground" Color="#2C3E50"/>
-        <SolidColorBrush x:Key="StatusModifiedBrush" Color="#E8F8F5"/>
-        <SolidColorBrush x:Key="StatusCorrectBrush" Color="#F4F4F4"/>
-        <SolidColorBrush x:Key="StatusIgnoredBrush" Color="#FDECEA"/>
-        <SolidColorBrush x:Key="ConsoleBackground" Color="#000000"/>
-        <SolidColorBrush x:Key="ConsoleForeground" Color="#32CD32"/>
-        <SolidColorBrush x:Key="ThemeButtonBackground" Color="#FFFFFF"/>
+        <Style x:Key="ThemedComboBox" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="toggleButton"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="bd"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="2">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="1"
+                                                        Background="{DynamicResource BorderBrush}"
+                                                        Width="20" CornerRadius="0,2,2,0">
+                                                    <Path x:Name="arrow"
+                                                          Data="M 0 0 L 4 4 L 8 0"
+                                                          Stroke="{DynamicResource TextBrush}"
+                                                          StrokeThickness="1.5"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="contentPresenter"
+                                              Content="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=SelectionBoxItem}"
+                                              ContentTemplate="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=SelectionBoxItemTemplate}"
+                                              Margin="8,0,26,0"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              HorizontalAlignment="Left"/>
+                            <Popup x:Name="popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="{DynamicResource InputBackground}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2">
+                                    <ScrollViewer x:Name="dropdownScrollViewer">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ThemedComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
 
         <Style x:Key="ModernButton" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
@@ -76,21 +149,6 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         </Style>
 
-        <Style x:Key="ConsoleOutput" TargetType="TextBox">
-            <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="Background" Value="{DynamicResource ConsoleBackground}"/>
-            <Setter Property="Foreground" Value="{DynamicResource ConsoleForeground}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="TextWrapping" Value="NoWrap"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="AcceptsReturn" Value="True"/>
-            <Setter Property="IsUndoEnabled" Value="False"/>
-        </Style>
-
         <Style x:Key="PreviewGridRow" TargetType="DataGridRow">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="13"/>
@@ -115,11 +173,13 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <GroupBox Grid.Row="0" Header=" مسار المجلد " Padding="8" Margin="0,0,0,8">
+        <GroupBox Grid.Row="0" Header=" مسار المجلد " Padding="8" Margin="0,0,0,8"
+                  Foreground="{DynamicResource TextBrush}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -133,11 +193,13 @@
                              Style="{StaticResource FlatTextBox}"/>
                 </DockPanel>
                 <CheckBox x:Name="recurseCheck" Grid.Row="1" Content="مجلدات فرعية"
-                          Margin="0,8,0,0" FontFamily="Segoe UI" FontSize="13" VerticalAlignment="Center"/>
+                          Margin="0,8,0,0" FontFamily="Segoe UI" FontSize="13" VerticalAlignment="Center"
+                          Foreground="{DynamicResource TextBrush}"/>
             </Grid>
         </GroupBox>
 
-        <GroupBox Grid.Row="1" Header=" خيارات التسمية " Padding="8" Margin="0,0,0,8">
+        <GroupBox Grid.Row="1" Header=" خيارات التسمية " Padding="8" Margin="0,0,0,8"
+                  Foreground="{DynamicResource TextBrush}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -148,56 +210,56 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <ComboBox x:Name="styleDropdown" Grid.Column="0" Width="280" Height="30"
+                    <Label x:Name="styleLabel" Grid.Column="0" Content="نمط التسمية:" Margin="6,0"
+                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"
+                           Foreground="{DynamicResource TextBrush}"/>
+                    <ComboBox x:Name="styleDropdown" Grid.Column="1" Width="280" Height="30"
                               VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13" BorderThickness="1"
                               Foreground="{DynamicResource TextBrush}"
+                              Style="{StaticResource ThemedComboBox}"
+                              ItemContainerStyle="{StaticResource ThemedComboBoxItem}"
                               SelectionChanged="StyleDropdown_SelectionChanged"/>
-                    <Label x:Name="styleLabel" Grid.Column="1" Content="نمط التسمية:" Margin="6,0"
-                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
-                    <TextBox x:Name="showBox" Grid.Column="2" MinWidth="160" Height="30"
+                    <Label x:Name="showLabel" Grid.Column="2" Content="اسم المسلسل:" Margin="6,0"
+                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"
+                           Foreground="{DynamicResource TextBrush}"/>
+                    <TextBox x:Name="showBox" Grid.Column="3" Width="200" Height="30"
                              Margin="4,0" Style="{StaticResource FlatTextBox}"
                              TextChanged="ShowBox_TextChanged"/>
-                    <Label x:Name="showLabel" Grid.Column="3" Content="اسم المسلسل:" Margin="6,0"
-                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
                 </Grid>
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
                     <CheckBox x:Name="cleanTagsCheck" Content="تنظيف علامات المصدر"
-                              VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                              VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"
+                              Foreground="{DynamicResource TextBrush}"/>
                     <CheckBox x:Name="subtitleCheck" Content="إعادة تسمية الترجمة"
-                              Margin="20,0,0,0" VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                              Margin="20,0,0,0" VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"
+                              Foreground="{DynamicResource TextBrush}"/>
                     <Label x:Name="ignoreLabel" Content="استبعاد:" Margin="20,0,0,0"
-                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"/>
+                           VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="13"
+                           Foreground="{DynamicResource TextBrush}"/>
                     <TextBox x:Name="ignoreBox" Width="180" Height="30"
                              ToolTip="أسماء الملفات التي تحتوي على هذه الكلمات سيتم تجاهلها (افصل بفاصلة)"
                              VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13"
                              Style="{StaticResource FlatTextBox}"/>
-                    <Button x:Name="suggestBtn" x:FieldModifier="internal" Content="اقتراح الاسم" Background="#9B59B6"
-                            Width="130" Height="32" Margin="140,0,0,0"
-                            Style="{StaticResource ModernButton}" Click="SuggestBtn_Click"/>
                 </StackPanel>
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
                     <Label x:Name="patternLabel" Content="قالب مخصص:" VerticalAlignment="Center"
-                           FontFamily="Segoe UI" FontSize="13"/>
+                           FontFamily="Segoe UI" FontSize="13"
+                           Foreground="{DynamicResource TextBrush}"/>
                     <TextBox x:Name="patternBox" Width="320" Height="30"
-                             ToolTip="الرموز: {show} {season} {ep} {ep2} {ep3} — مثال: {show} - S{season}E{ep3}"
+                             ToolTip="الرموز: {show} {season} {ep} {ep2} {ep3} {epEnd} {epEnd2} {epEnd3} — مثال: {show} - S{season}E{ep3}"
                              VerticalContentAlignment="Center" FontFamily="Segoe UI" FontSize="13"
                              Style="{StaticResource FlatTextBox}"/>
-                    <TextBlock Text="الرموز: {show} {season} {ep} {ep2} {ep3}" Margin="10,0,0,0"
+                    <TextBlock Text="الرموز: {show} {season} {ep} {ep2} {ep3} {epEnd} {epEnd2} {epEnd3}" Margin="10,0,0,0"
                                VerticalAlignment="Center" Foreground="{DynamicResource MutedTextBrush}" FontFamily="Segoe UI" FontSize="12"/>
-                    <Button x:Name="exportSettingsBtn" x:FieldModifier="internal" Content="تصدير الإعدادات"
-                            Background="#16A085" Width="140" Height="32" Margin="140,0,0,0"
-                            Style="{StaticResource ModernButton}" Click="ExportSettingsBtn_Click"/>
-                    <Button x:Name="importSettingsBtn" x:FieldModifier="internal" Content="استيراد الإعدادات"
-                            Background="#27AE60" Width="140" Height="32" Margin="10,0,0,0"
-                            Style="{StaticResource ModernButton}" Click="ImportSettingsBtn_Click"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,8">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4,0,8">
             <Button x:Name="previewBtn" x:FieldModifier="internal" Content="👁 معاينة" Background="#2ECC71"
                     Style="{StaticResource ModernButton}" Click="PreviewBtn_Click"/>
             <Button x:Name="renameBtn" x:FieldModifier="internal" Content="✍ إعادة تسمية" Background="#E74C3C"
@@ -209,14 +271,35 @@
                     Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="UndoBtn_Click"/>
             <Button x:Name="exportBtn" x:FieldModifier="internal" Content="💾 حفظ التقرير" Background="#34495E"
                     Margin="10,0,0,0" Style="{StaticResource ModernButton}" Click="ExportBtn_Click"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button x:Name="suggestBtn" x:FieldModifier="internal" Content="اقتراح الاسم" Background="#9B59B6"
+                    Width="150" Style="{StaticResource ModernButton}" Click="SuggestBtn_Click"/>
+            <Button x:Name="exportSettingsBtn" x:FieldModifier="internal" Content="تصدير الإعدادات"
+                    Background="#16A085" Width="150" Margin="10,0,0,0"
+                    Style="{StaticResource ModernButton}" Click="ExportSettingsBtn_Click"/>
+            <Button x:Name="importSettingsBtn" x:FieldModifier="internal" Content="استيراد الإعدادات"
+                    Background="#27AE60" Width="150" Margin="10,0,0,0"
+                    Style="{StaticResource ModernButton}" Click="ImportSettingsBtn_Click"/>
             <Button x:Name="themeBtn" x:FieldModifier="internal" Content="☀️" Background="{DynamicResource ThemeButtonBackground}"
                     Foreground="{DynamicResource TextBrush}" Width="46" MinWidth="46" Margin="10,0,0,0"
                     ToolTip="الوضع الليلي / النهاري" Style="{StaticResource ModernButton}" Click="ThemeBtn_Click"/>
         </StackPanel>
 
-        <ProgressBar x:Name="progress" Grid.Row="3" Height="14" Margin="0,4,0,8" Minimum="0" Maximum="100"/>
+        <ProgressBar x:Name="progress" Grid.Row="4" Height="14" Margin="0,4,0,8" Minimum="0" Maximum="100"/>
 
-        <DataGrid x:Name="previewGrid" Grid.Row="4"
+        <Border x:Name="statusBorder" x:FieldModifier="internal" Grid.Row="5"
+                Background="Transparent" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                CornerRadius="4" Padding="8,4" Margin="0,0,0,8" MinHeight="28">
+            <TextBlock x:Name="statusText" x:FieldModifier="internal"
+                       FontFamily="Segoe UI" FontSize="13"
+                       Foreground="{DynamicResource TextBrush}"
+                       TextAlignment="Right" TextTrimming="CharacterEllipsis"
+                       VerticalAlignment="Center" Focusable="False"/>
+        </Border>
+
+        <DataGrid x:Name="previewGrid" Grid.Row="6"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"
@@ -242,13 +325,59 @@
                     <Setter Property="BorderThickness" Value="0,0,0,1"/>
                 </Style>
             </DataGrid.ColumnHeaderStyle>
+            <DataGrid.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.ContainerStyle>
+                        <Style TargetType="{x:Type GroupItem}">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type GroupItem}">
+                                        <Expander IsExpanded="True"
+                                                  FontFamily="Segoe UI" FontSize="13" FontWeight="Bold"
+                                                  Foreground="{DynamicResource GridHeaderForeground}"
+                                                  Background="{DynamicResource GridHeaderBackground}">
+                                            <Expander.Header>
+                                                <TextBlock Text="{Binding Name}" Margin="8,4"/>
+                                            </Expander.Header>
+                                            <ItemsPresenter/>
+                                        </Expander>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </GroupStyle.ContainerStyle>
+                </GroupStyle>
+            </DataGrid.GroupStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn x:Name="colStatus" Header="الحالة" Binding="{Binding Status}" Width="90" IsReadOnly="True"/>
-                <DataGridTextColumn Header="الاسم الحالي" Binding="{Binding OldName}" Width="4*" IsReadOnly="True"/>
-                <DataGridTextColumn Header="الاسم الجديد (انقر نقراً مزدوجاً للتعديل)" Binding="{Binding NewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="4*"/>
+                <DataGridTextColumn x:Name="colStatus" Header="الحالة" Binding="{Binding Status}" Width="Auto" MinWidth="80" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="الاسم الحالي" Binding="{Binding OldName}" Width="Auto" MinWidth="180" MaxWidth="420" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Right"/>
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="الاسم الجديد (انقر نقراً مزدوجاً للتعديل)" Binding="{Binding NewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" MinWidth="220" MaxWidth="520">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Right"/>
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox">
+                            <Setter Property="TextAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
-
-        <TextBox x:Name="output" Grid.Row="5" FlowDirection="LeftToRight" Height="200" Style="{StaticResource ConsoleOutput}"/>
     </Grid>
 </Window>
